@@ -92,7 +92,8 @@ export default function Login() {
             setSuccess('')
             setPassword('')
           }}
-          className="w-full mt-4 text-center text-gray-600 hover:text-gray-900 text-sm"
+          className="w-full mt-4 pt-3 pb-2 text-center text-sm text-gray-600 hover:text-blue-600 hover:font-medium transition"
+          type="button"
         >
           {isForgotPassword ? 'Back to log in' : 'Forgot your password?'}
         </button>
