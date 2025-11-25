@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuth } from './hooks/useAuth'
 import Login from './pages/Login'
-import ResetPassword from './pages/ResetPassword'
 import Boards from './pages/Boards'
 import Board from './pages/Board'
 import './App.css'
@@ -15,7 +14,6 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/boards" element={<ProtectedRoute><Boards /></ProtectedRoute>} />
           <Route path="/boards/:boardId" element={<ProtectedRoute><Board /></ProtectedRoute>} />
           <Route path="/" element={<Navigate to="/boards" replace />} />
