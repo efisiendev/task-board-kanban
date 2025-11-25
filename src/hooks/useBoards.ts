@@ -22,12 +22,13 @@ export function useCreateBoard() {
 
   return useMutation({
     mutationFn: async (name: string) => {
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      if (authError || !user) throw new Error('Not authenticated')
+      // Get the current session which includes the JWT token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError || !session?.user) throw new Error('Not authenticated')
 
       const { data, error } = await supabase
         .from('boards')
-        .insert({ name, user_id: user.id })
+        .insert({ name, user_id: session.user.id })
         .select()
         .single()
 
