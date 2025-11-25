@@ -3,41 +3,28 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 export default function Login() {
-  const { signUp, signIn, resetPassword } = useAuth()
+  const { signUp, signIn } = useAuth()
   const navigate = useNavigate()
   const [isSignUp, setIsSignUp] = useState(false)
-  const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setSuccess('')
     setLoading(true)
 
     try {
-      if (showForgotPassword) {
-        const { error } = await resetPassword(email)
-        if (error) throw error
-        setSuccess('Password reset email sent! Check your inbox.')
-        setEmail('')
-        setTimeout(() => {
-          setShowForgotPassword(false)
-          setSuccess('')
-        }, 3000)
-      } else if (isSignUp) {
+      if (isSignUp) {
         const { error } = await signUp(email, password)
         if (error) throw error
-        navigate('/boards')
       } else {
         const { error } = await signIn(email, password)
         if (error) throw error
-        navigate('/boards')
       }
+      navigate('/boards')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -63,68 +50,35 @@ export default function Login() {
             />
           </div>
 
-          {!showForgotPassword && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                required
-                minLength={8}
-              />
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              required
+              minLength={8}
+            />
+          </div>
 
           {error && <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>}
-          {success && <div className="p-3 bg-green-100 text-green-700 rounded-lg text-sm">{success}</div>}
 
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 rounded-lg transition disabled:opacity-50"
           >
-            {loading ? 'Loading...' : showForgotPassword ? 'Send Reset Email' : isSignUp ? 'Sign Up' : 'Log In'}
+            {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Log In'}
           </button>
         </form>
 
-        {showForgotPassword ? (
-          <button
-            onClick={() => {
-              setShowForgotPassword(false)
-              setError('')
-              setSuccess('')
-              setEmail('')
-            }}
-            className="w-full mt-4 text-center text-blue-600 hover:text-blue-800 text-sm font-medium"
-            type="button"
-          >
-            Back to Log In
-          </button>
-        ) : (
-          <>
-            <button
-              onClick={() => {
-                setShowForgotPassword(true)
-                setError('')
-                setPassword('')
-              }}
-              className="w-full mt-4 text-center text-gray-600 hover:text-blue-600 text-sm"
-              type="button"
-            >
-              Forgot your password?
-            </button>
-
-            <button
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="w-full text-center text-gray-600 hover:text-gray-900 text-sm"
-              type="button"
-            >
-              {isSignUp ? 'Already have an account? Log in' : "Don't have an account? Sign up"}
-            </button>
-          </>
-        )}
+        <button
+          onClick={() => setIsSignUp(!isSignUp)}
+          className="w-full mt-4 text-center text-gray-600 hover:text-gray-900 text-sm"
+        >
+          {isSignUp ? 'Already have an account? Log in' : "Don't have an account? Sign up"}
+        </button>
       </div>
     </div>
   )
