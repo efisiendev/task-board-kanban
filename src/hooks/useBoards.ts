@@ -18,6 +18,7 @@ export function useBoards() {
       if (error) throw error
       return data as Board[]
     },
+    staleTime: 0, // Always refetch to ensure fresh data per user
   })
 }
 
