@@ -6,6 +6,8 @@ import { TaskChecklist } from './TaskChecklist'
 import { TaskComments } from './TaskComments'
 import { ActivityLog } from './ActivityLog'
 import { TaskPages } from './TaskPages'
+import { TaskRelations } from './TaskRelations'
+import { useUserProfile } from '../hooks/useUsers'
 
 interface TaskModalProps {
   task: Task | null
@@ -45,13 +47,16 @@ export default function TaskModal({
   const [labels, setLabels] = useState<string[]>([])
   const [estimatedTime, setEstimatedTime] = useState<string>('')
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'checklist' | 'pages' | 'activity'>('checklist')
+  const [activeTab, setActiveTab] = useState<'checklist' | 'pages' | 'relations'>('checklist')
   const [editingProperty, setEditingProperty] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const initialTaskIdRef = useRef<string | null>(null)
   const latestValuesRef = useRef({ title, description, priority, assignedTo, dueDate, startDate, labels, estimatedTime })
   const lastEditTimeRef = useRef<number>(0)
+
+  // Get assignee profile for display
+  const { data: assigneeProfile } = useUserProfile(assignedTo || null)
 
   // Update ref with latest values on every render
   latestValuesRef.current = { title, description, priority, assignedTo, dueDate, startDate, labels, estimatedTime }
@@ -98,6 +103,38 @@ export default function TaskModal({
     }
   }, [task, isOpen])
 
+  // Helper: Auto-add user as board member when assigned
+  const ensureBoardMember = useCallback(async (userId: string, boardId: string) => {
+    if (!userId) return
+
+    try {
+      // Check if already a member
+      const { data: existing } = await supabase
+        .from('board_members')
+        .select('id')
+        .eq('board_id', boardId)
+        .eq('user_id', userId)
+        .single()
+
+      if (existing) return // Already a member
+
+      // Get current user (who is assigning)
+      const { data: { user } } = await supabase.auth.getUser()
+
+      // Add as board member with 'member' role
+      await supabase
+        .from('board_members')
+        .insert({
+          board_id: boardId,
+          user_id: userId,
+          role: 'member',
+          invited_by: user?.id || null,
+        })
+    } catch (error) {
+      console.error('Failed to add board member:', error)
+    }
+  }, [])
+
   // Auto-save function - uses ref to get latest values
   const autoSave = useCallback(async () => {
     if (!task) return
@@ -107,6 +144,11 @@ export default function TaskModal({
 
     setIsSaving(true)
     try {
+      // If assigning to a user, ensure they're a board member
+      if (values.assignedTo) {
+        await ensureBoardMember(values.assignedTo, task.board_id)
+      }
+
       const { error } = await supabase
         .from('tasks')
         .update({
@@ -128,7 +170,7 @@ export default function TaskModal({
     } finally {
       setIsSaving(false)
     }
-  }, [task])
+  }, [task, ensureBoardMember])
 
   // Debounced auto-save - stable function
   const debouncedAutoSave = useCallback(() => {
@@ -333,8 +375,16 @@ export default function TaskModal({
                       onClick={() => setEditingProperty('assigned')}
                       className="text-sm cursor-pointer px-2 py-1"
                     >
-                      {assignedTo ? (
-                        <span className="text-gray-900">{assignedTo}</span>
+                      {assigneeProfile ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium">
+                            {assigneeProfile.email[0].toUpperCase()}
+                          </div>
+                          <span className="text-gray-900">
+                            {assigneeProfile.email}
+                            {assigneeProfile.employee_number && ` - ${assigneeProfile.employee_number}`}
+                          </span>
+                        </div>
                       ) : (
                         <span className="text-gray-400">Empty</span>
                       )}
@@ -554,12 +604,24 @@ export default function TaskModal({
                 >
                   Pages
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('relations')}
+                  className={`pb-2 px-1 text-sm font-medium border-b-2 transition ${
+                    activeTab === 'relations'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Relations
+                </button>
               </div>
 
               {/* Tab Content */}
               <div>
                 {activeTab === 'checklist' && <TaskChecklist taskId={task.id} boardId={task.board_id} />}
                 {activeTab === 'pages' && <TaskPages taskId={task.id} />}
+                {activeTab === 'relations' && <TaskRelations taskId={task.id} boardId={task.board_id} />}
               </div>
             </div>
           )}

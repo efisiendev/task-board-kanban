@@ -257,27 +257,52 @@ CREATE INDEX idx_task_pages_order ON task_pages(task_id, order_index);
 ### **PHASE 2: Advanced Features (Week 2)** 🚀
 **Priority:** MEDIUM - Important untuk scalability
 
-#### 2.1 Linked Database (Task Dependencies) ✅
-**Deskripsi:** Tasks bisa linked satu sama lain (dependencies, related tasks)
+#### 2.1 Task Relations (Cross-referencing) ✅
+**Deskripsi:** Tasks bisa linked satu sama lain dengan relationship types
 
-**Technical Implementation:**
+**Database Schema:**
 ```sql
+-- Migration 018: Task Relations
 CREATE TABLE task_relations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   from_task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
   to_task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
-  relation_type VARCHAR(50) NOT NULL, -- blocks, blocked_by, relates_to, duplicates
+  relation_type VARCHAR(50) NOT NULL, -- blocks, blocked_by, relates_to, duplicates, duplicate_of
+  created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(from_task_id, to_task_id, relation_type)
+  UNIQUE(from_task_id, to_task_id, relation_type),
+  CHECK (from_task_id != to_task_id) -- Prevent self-referencing
 );
 ```
 
-**UI Changes:**
-- Task modal: Section untuk add related tasks
-- Visual indicator untuk blocked tasks
-- Dependency graph view (optional)
+**Features Implemented:**
+- ✅ TaskRelations component dengan UI minimalis
+- ✅ 5 relation types dengan emoji indicators
+  - 🚫 Blocks
+  - ⛔ Blocked by
+  - 🔗 Relates to
+  - 📋 Duplicates
+  - 📄 Duplicate of
+- ✅ Visual distinction: Outgoing (gray), Incoming (blue)
+- ✅ Real-time updates via Supabase Realtime
+- ✅ Status badges untuk linked tasks
+- ✅ Delete relation functionality
+- ✅ Empty state dengan icon
+- ✅ Integration di TaskModal sebagai tab "Relations"
 
-**Estimasi:** 3-4 hari
+**Bug Fixes:**
+- ✅ Fixed TaskModal showing user_id instead of email/profile
+- ✅ Auto-add board member saat assign task ke user
+- ✅ Display assignee profile dengan avatar & employee_number
+
+**Technical Details:**
+- React Query hooks: useTaskRelations, useCreateTaskRelation, useDeleteTaskRelation
+- Bidirectional Realtime subscription (outgoing + incoming relations)
+- RLS policies untuk security
+- Auto-add board member logic di TaskModal auto-save
+- Existing auto-add di useTasks mutations (create/update)
+
+**Completed:** 2025-12-30
 
 ---
 

@@ -120,3 +120,16 @@ export interface TaskPage {
   created_at: string
   updated_at: string
 }
+
+export type TaskRelationType = 'blocks' | 'blocked_by' | 'relates_to' | 'duplicates' | 'duplicate_of'
+
+export interface TaskRelation {
+  id: string
+  from_task_id: string
+  to_task_id: string
+  relation_type: TaskRelationType
+  created_by: string | null
+  created_at: string
+  from_task?: Task
+  to_task?: Task
+}
