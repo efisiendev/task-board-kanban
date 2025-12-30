@@ -22,7 +22,7 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
   const { data: assigneeProfile } = useUserProfile(task.assigned_to)
   const { data: checklistItems = [] } = useTaskChecklist(task.id)
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = () => {
     if (!isDragging) {
       onClick()
     }
