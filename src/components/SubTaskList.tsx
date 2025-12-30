@@ -268,27 +268,38 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
     if (!newStatusId) return
 
     // Calculate new order_index based on position
+    // Filter out the item being dragged to get accurate positions
     const itemsInStatus = items
-      .filter((i) => i.status_id === newStatusId)
+      .filter((i) => i.status_id === newStatusId && i.id !== activeItem.id)
       .sort((a, b) => a.order_index - b.order_index)
 
     let newOrderIndex = activeItem.order_index
 
-    if (itemsInStatus.length > 0) {
+    if (itemsInStatus.length === 0) {
+      // Moving to empty column
+      newOrderIndex = 0
+    } else {
       const overItemId = over.id as string
-      const overItemIndex = itemsInStatus.findIndex((i) => i.id === overItemId)
 
-      if (overItemIndex === -1) {
-        // Dropped in empty area, add to end
-        newOrderIndex = itemsInStatus[itemsInStatus.length - 1].order_index + 1
-      } else if (overItemIndex === 0) {
-        newOrderIndex = itemsInStatus[0].order_index - 1
-      } else if (overItemIndex === itemsInStatus.length - 1) {
+      // If dropped on the column itself (not a specific item), add to end
+      if (overItemId === newStatusId) {
         newOrderIndex = itemsInStatus[itemsInStatus.length - 1].order_index + 1
       } else {
-        const above = itemsInStatus[overItemIndex - 1]
-        const below = itemsInStatus[overItemIndex]
-        newOrderIndex = (above.order_index + below.order_index) / 2
+        // Dropped on a specific item
+        const overItemIndex = itemsInStatus.findIndex((i) => i.id === overItemId)
+
+        if (overItemIndex === -1) {
+          // Shouldn't happen, but fallback to end
+          newOrderIndex = itemsInStatus[itemsInStatus.length - 1].order_index + 1
+        } else if (overItemIndex === 0) {
+          // Dropped on first item - place before it
+          newOrderIndex = itemsInStatus[0].order_index - 1
+        } else {
+          // Dropped between items - average their order_index
+          const above = itemsInStatus[overItemIndex - 1]
+          const below = itemsInStatus[overItemIndex]
+          newOrderIndex = (above.order_index + below.order_index) / 2
+        }
       }
     }
 
@@ -347,12 +358,13 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
 
         <DragOverlay>
           {activeItem ? (
-            <div className="bg-white p-2 rounded border-2 border-blue-400 text-sm shadow-lg">
-              <div className="flex items-start gap-2">
-                <input type="checkbox" checked={activeItem.is_completed} readOnly className="mt-0.5 rounded" />
-                <div className="flex-1">
-                  <div className="font-medium">{activeItem.title}</div>
-                </div>
+            <div className="bg-white p-3 rounded-lg border-2 border-blue-400 shadow-xl opacity-90">
+              <div className="font-medium text-gray-900 text-sm mb-2">{activeItem.title}</div>
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                {activeItem.priority && <span className="px-2 py-0.5 rounded-full bg-gray-100">{activeItem.priority}</span>}
+                {activeItem.labels && activeItem.labels.length > 0 && (
+                  <span className="text-gray-500">{activeItem.labels.length} labels</span>
+                )}
               </div>
             </div>
           ) : null}
