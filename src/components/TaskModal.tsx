@@ -307,7 +307,7 @@ export default function TaskModal({
 
               {/* Tab Content */}
               <div>
-                {activeTab === 'checklist' && <TaskChecklist taskId={task.id} />}
+                {activeTab === 'checklist' && <TaskChecklist taskId={task.id} boardId={task.board_id} />}
                 {activeTab === 'comments' && <TaskComments taskId={task.id} />}
                 {activeTab === 'activity' && <ActivityLog taskId={task.id} />}
               </div>

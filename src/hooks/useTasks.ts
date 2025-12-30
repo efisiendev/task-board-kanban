@@ -3,6 +3,33 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { Task, TaskPriority } from '../types'
 
+// Helper function: Auto-add assigned user to board if not already a member
+async function ensureUserIsBoardMember(boardId: string, userId: string) {
+  if (!userId) return
+
+  // Check if user is already a board member
+  const { data: existingMember } = await supabase
+    .from('board_members')
+    .select('id')
+    .eq('board_id', boardId)
+    .eq('user_id', userId)
+    .single()
+
+  // If not a member, add them
+  if (!existingMember) {
+    const { data: { user } } = await supabase.auth.getUser()
+
+    await supabase.from('board_members').insert({
+      board_id: boardId,
+      user_id: userId,
+      role: 'member',
+      invited_by: user?.id || null,
+    })
+
+    console.log(`✅ Auto-added user ${userId} to board ${boardId} as member`)
+  }
+}
+
 export function useTasks(boardId: string) {
   const queryClient = useQueryClient()
 
@@ -13,6 +40,7 @@ export function useTasks(boardId: string) {
         .from('tasks')
         .select('*')
         .eq('board_id', boardId)
+        .is('parent_task_id', null)
         .order('order_index', { ascending: true })
 
       if (error) throw error
@@ -32,7 +60,7 @@ export function useTasks(boardId: string) {
           event: '*',
           schema: 'public',
           table: 'tasks',
-          filter: `board_id=eq.${boardId}`,
+          filter: `board_id=eq.${boardId},parent_task_id=is.null`,
         },
         (payload) => {
           console.log('✅ Realtime event received:', payload)
@@ -77,6 +105,11 @@ export function useCreateTask() {
       labels?: string[] | null
       estimated_time?: number | null
     }) => {
+      // Auto-add assigned user to board if needed
+      if (assigned_to) {
+        await ensureUserIsBoardMember(boardId, assigned_to)
+      }
+
       // Get current user for created_by
       const { data: { user } } = await supabase.auth.getUser()
 
@@ -130,6 +163,12 @@ export function useUpdateTask() {
       }
     ) => {
       const { id, boardId, ...updates } = variables
+
+      // Auto-add assigned user to board if needed (when assignment changes)
+      if (updates.assigned_to) {
+        await ensureUserIsBoardMember(boardId, updates.assigned_to)
+      }
+
       const { data, error } = await supabase
         .from('tasks')
         .update(updates)

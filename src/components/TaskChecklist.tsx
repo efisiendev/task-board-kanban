@@ -32,6 +32,7 @@ import { SubtaskModal } from './SubtaskModal'
 
 interface TaskChecklistProps {
   taskId: string
+  boardId: string
 }
 
 interface SortableItemProps {
@@ -206,7 +207,7 @@ function Column({ status, title, items, onDelete, onEdit }: ColumnProps) {
   )
 }
 
-export function TaskChecklist({ taskId }: TaskChecklistProps) {
+export function TaskChecklist({ taskId, boardId }: TaskChecklistProps) {
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingSubtask, setEditingSubtask] = useState<TaskChecklistItem | null>(null)
@@ -246,9 +247,14 @@ export function TaskChecklist({ taskId }: TaskChecklistProps) {
 
   const handleModalSave = (data: {
     title: string
+    description: string
     priority: TaskChecklistItem['priority']
+    assigned_to: string | null
     due_date: string | null
+    start_date: string | null
+    labels: string[] | null
     estimated_time: number | null
+    actual_time: number | null
   }) => {
     if (modalMode === 'create') {
       // Calculate max order_index for todo column
@@ -257,12 +263,18 @@ export function TaskChecklist({ taskId }: TaskChecklistProps) {
 
       createItem.mutate({
         taskId,
+        boardId,
         title: data.title,
+        description: data.description,
         orderIndex: maxOrder + 1,
         status: 'todo',
         priority: data.priority,
+        assignedTo: data.assigned_to,
         dueDate: data.due_date,
+        startDate: data.start_date,
+        labels: data.labels,
         estimatedTime: data.estimated_time,
+        actualTime: data.actual_time,
       })
     } else if (editingSubtask) {
       updateItem.mutate({
@@ -270,8 +282,11 @@ export function TaskChecklist({ taskId }: TaskChecklistProps) {
         taskId,
         title: data.title,
         priority: data.priority,
+        assigned_to: data.assigned_to,
         due_date: data.due_date,
+        labels: data.labels,
         estimated_time: data.estimated_time,
+        actual_time: data.actual_time,
       })
     }
   }

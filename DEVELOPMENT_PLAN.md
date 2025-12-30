@@ -122,7 +122,7 @@ CREATE TABLE task_activity_log (
 
 ---
 
-#### 1.4 Kanban-Style Subtasks (Notion-Like) 🎯
+#### 1.4 Kanban-Style Subtasks (Notion-Like) ✅
 **Deskripsi:** Upgrade subtasks dari simple checklist → Mini Kanban board dengan status columns
 
 **Current vs Enhanced:**
@@ -140,38 +140,55 @@ UPGRADE (Mini Kanban):
 └──────────┴─────────────┴──────────┘
 ```
 
-**Technical Implementation:**
+**Final Implementation - Unified Hierarchical Task System:**
 ```sql
--- Update task_checklist table
-ALTER TABLE task_checklist
-  ADD COLUMN status VARCHAR(20) DEFAULT 'todo';
-  -- 'todo', 'in_progress', 'done'
+-- Migration 016: Unified task system
+-- Instead of separate task_checklist table, subtasks are now tasks with parent_task_id
+ALTER TABLE tasks
+  ADD COLUMN parent_task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
+  ADD COLUMN is_checklist_item BOOLEAN DEFAULT FALSE,
+  ADD COLUMN depth_level INTEGER DEFAULT 0;
 
--- Create index for filtering by status
-CREATE INDEX idx_task_checklist_status ON task_checklist(task_id, status);
+-- Migrate existing data from task_checklist to tasks
+-- Copy all checklist items as child tasks with parent_task_id
 
--- Update order_index to be per-column (not global)
--- order_index now represents position within the status column
+-- Create index for querying subtasks
+CREATE INDEX idx_tasks_parent_task_id ON tasks(parent_task_id);
+
+-- Drop old task_checklist table
+DROP TABLE IF EXISTS task_checklist CASCADE;
 ```
 
+**Key Features Implemented:**
+- ✅ Unified task table with parent-child relationships
+- ✅ Subtasks have all properties of parent tasks (priority, assignee, due date, labels, etc)
+- ✅ 3-column Kanban board (Todo, In Progress, Done) for subtasks
+- ✅ Drag-and-drop between columns and within columns
+- ✅ Progress indicator showing completion percentage
+- ✅ Real-time synchronization via Supabase Realtime
+- ✅ Auto-add assigned users as board members (frontend helper function)
+
 **UI Changes:**
-- Task sidebar: Replace checklist list → 3-column Kanban board
+- Task sidebar: 3-column Kanban board for subtasks
 - Drag-and-drop subtasks antar kolom (todo → in progress → done)
-- Progress indicator tetap show completion percentage
-- Optional: Toggle view antara Board ↔ List view
+- Progress indicator shows completion percentage
+- SubtaskModal with full property set (description, priority, assignee, due date, labels, estimated/actual time)
 
 **Component Updates:**
-- `TaskChecklist.tsx` → Redesign ke 3-column layout
-- Add drag-drop logic untuk move antar status
-- Update hooks untuk handle `status` field
+- `TaskChecklist.tsx` → 3-column Kanban layout with drag-drop
+- `SubtaskModal.tsx` → Full property form matching parent tasks
+- `useTaskChecklist.ts` → Query from unified tasks table
+- `useTasks.ts` → Auto-add assigned users as board members
 
 **Benefits:**
 - ✅ Visual progress tracking (seperti Notion)
 - ✅ Lebih detail dari boolean done/not done
 - ✅ Track work in progress vs backlog
 - ✅ Better untuk complex tasks dengan banyak subtasks
+- ✅ Subtasks memiliki fitur lengkap seperti parent tasks
+- ✅ Arsitektur database lebih clean dan scalable
 
-**Estimasi:** 1-2 hari
+**Completed:** 2025-12-30
 
 ---
 
@@ -508,8 +525,8 @@ Berdasarkan kebutuhan tim C-level, prioritas development adalah:
 ---
 
 **Last Updated:** 2025-12-30
-**Status:** Planning Phase
-**Next Review:** After Phase 1 completion
+**Status:** Phase 1 Completed ✅
+**Next Review:** Before starting Phase 2
 
 ---
 
@@ -518,8 +535,10 @@ Berdasarkan kebutuhan tim C-level, prioritas development adalah:
 - [x] Setup Supabase project
 - [x] Run base migrations
 - [x] Deploy to Vercel
-- [ ] Start Phase 1: Subtasks
-- [ ] Start Phase 1: Task Properties
-- [ ] Start Phase 1: Comments
+- [x] **Phase 1.1:** Subtasks/Checklist ✅
+- [x] **Phase 1.2:** Task Properties ✅
+- [x] **Phase 1.3:** Comments & Activity Log ✅
+- [x] **Phase 1.4:** Kanban-Style Subtasks ✅
+- [ ] **Phase 2:** Advanced Features (Next)
 
 **Questions? Updates? Add notes below:** 👇

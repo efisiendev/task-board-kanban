@@ -1,14 +1,20 @@
 import { useState, useEffect } from 'react'
 import { TaskChecklistItem, TaskPriority } from '../types'
+import UserSelector from './UserSelector'
 
 interface SubtaskModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (data: {
     title: string
+    description: string
     priority: TaskPriority | null
+    assigned_to: string | null
     due_date: string | null
+    start_date: string | null
+    labels: string[] | null
     estimated_time: number | null
+    actual_time: number | null
   }) => void
   subtask?: TaskChecklistItem | null
   mode: 'create' | 'edit'
@@ -16,22 +22,39 @@ interface SubtaskModalProps {
 
 export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: SubtaskModalProps) {
   const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<TaskPriority | null>(null)
+  const [assignedTo, setAssignedTo] = useState('')
   const [dueDate, setDueDate] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [labelInput, setLabelInput] = useState('')
+  const [labels, setLabels] = useState<string[]>([])
   const [estimatedTime, setEstimatedTime] = useState('')
+  const [actualTime, setActualTime] = useState('')
 
   useEffect(() => {
     if (subtask && mode === 'edit') {
       setTitle(subtask.title)
+      setDescription('')
       setPriority(subtask.priority)
+      setAssignedTo(subtask.assigned_to || '')
       setDueDate(subtask.due_date || '')
+      setStartDate('')
+      setLabels(subtask.labels || [])
       setEstimatedTime(subtask.estimated_time?.toString() || '')
+      setActualTime(subtask.actual_time?.toString() || '')
     } else {
       // Reset for create mode
       setTitle('')
+      setDescription('')
       setPriority(null)
+      setAssignedTo('')
       setDueDate('')
+      setStartDate('')
+      setLabelInput('')
+      setLabels([])
       setEstimatedTime('')
+      setActualTime('')
     }
   }, [subtask, mode, isOpen])
 
@@ -40,17 +63,46 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
 
     onSave({
       title: title.trim(),
+      description: description.trim(),
       priority,
+      assigned_to: assignedTo || null,
       due_date: dueDate || null,
+      start_date: startDate || null,
+      labels: labels.length > 0 ? labels : null,
       estimated_time: estimatedTime ? parseInt(estimatedTime) : null,
+      actual_time: actualTime ? parseInt(actualTime) : null,
     })
 
     // Reset form
     setTitle('')
+    setDescription('')
     setPriority(null)
+    setAssignedTo('')
     setDueDate('')
+    setStartDate('')
+    setLabelInput('')
+    setLabels([])
     setEstimatedTime('')
+    setActualTime('')
     onClose()
+  }
+
+  const handleAddLabel = () => {
+    if (labelInput.trim() && !labels.includes(labelInput.trim())) {
+      setLabels([...labels, labelInput.trim()])
+      setLabelInput('')
+    }
+  }
+
+  const handleRemoveLabel = (label: string) => {
+    setLabels(labels.filter((l) => l !== label))
+  }
+
+  const handleLabelKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAddLabel()
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -104,6 +156,20 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter subtask title..."
               autoFocus
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add description..."
+              rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -180,6 +246,68 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
             />
           </div>
 
+          {/* Assigned To */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Assigned To
+            </label>
+            <UserSelector value={assignedTo} onChange={setAssignedTo} />
+          </div>
+
+          {/* Start Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Start Date
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Labels */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Labels
+            </label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={labelInput}
+                onChange={(e) => setLabelInput(e.target.value)}
+                onKeyDown={handleLabelKeyDown}
+                placeholder="Add label..."
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleAddLabel}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Add
+              </button>
+            </div>
+            {labels.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {labels.map((label) => (
+                  <span
+                    key={label}
+                    className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm flex items-center gap-2"
+                  >
+                    {label}
+                    <button
+                      onClick={() => handleRemoveLabel(label)}
+                      className="text-gray-500 hover:text-red-600"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Estimated Time */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -190,6 +318,21 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
               value={estimatedTime}
               onChange={(e) => setEstimatedTime(e.target.value)}
               placeholder="e.g., 30"
+              min="0"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Actual Time */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Actual Time (minutes)
+            </label>
+            <input
+              type="number"
+              value={actualTime}
+              onChange={(e) => setActualTime(e.target.value)}
+              placeholder="e.g., 45"
               min="0"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />

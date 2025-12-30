@@ -10,9 +10,9 @@ export function useTaskChecklist(taskId: string) {
     queryKey: ['task-checklist', taskId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('task_checklist')
+        .from('tasks')
         .select('*')
-        .eq('task_id', taskId)
+        .eq('parent_task_id', taskId)
         .order('status, order_index', { ascending: true })
 
       if (error) throw error
@@ -21,31 +21,31 @@ export function useTaskChecklist(taskId: string) {
     refetchInterval: 2000, // Auto-refresh every 2s (temporary for debug)
   })
 
-  // Real-time subscription for checklist items
+  // Real-time subscription for checklist items (now from tasks table)
   useEffect(() => {
-    console.log('🔔 Setting up checklist Realtime subscription for task:', taskId)
+    console.log('🔔 Setting up subtask Realtime subscription for task:', taskId)
 
     const channel = supabase
-      .channel(`task-checklist:${taskId}`)
+      .channel(`task-subtasks:${taskId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'task_checklist',
-          filter: `task_id=eq.${taskId}`,
+          table: 'tasks',
+          filter: `parent_task_id=eq.${taskId}`,
         },
         (payload) => {
-          console.log('✅ Checklist Realtime event:', payload)
+          console.log('✅ Subtask Realtime event:', payload)
           queryClient.invalidateQueries({ queryKey: ['task-checklist', taskId] })
         }
       )
       .subscribe((status) => {
-        console.log('📡 Checklist subscription status:', status)
+        console.log('📡 Subtask subscription status:', status)
       })
 
     return () => {
-      console.log('🔕 Unsubscribing from task checklist:', taskId)
+      console.log('🔕 Unsubscribing from task subtasks:', taskId)
       channel.unsubscribe()
     }
   }, [taskId, queryClient])
@@ -59,32 +59,51 @@ export function useCreateChecklistItem() {
   return useMutation({
     mutationFn: async ({
       taskId,
+      boardId,
       title,
+      description,
       orderIndex,
       status = 'todo',
       priority,
+      assignedTo,
       dueDate,
+      startDate,
+      labels,
       estimatedTime,
+      actualTime,
     }: {
       taskId: string
+      boardId: string
       title: string
+      description?: string
       orderIndex: number
       status?: SubtaskStatus
       priority?: TaskChecklistItem['priority']
+      assignedTo?: string | null
       dueDate?: string | null
+      startDate?: string | null
+      labels?: string[] | null
       estimatedTime?: number | null
+      actualTime?: number | null
     }) => {
       const { data, error } = await supabase
-        .from('task_checklist')
+        .from('tasks')
         .insert({
-          task_id: taskId,
+          parent_task_id: taskId,
+          board_id: boardId,
           title,
+          description: description || null,
           order_index: orderIndex,
           status,
-          is_completed: false,
+          is_checklist_item: true,
+          depth_level: 1,
           priority: priority || null,
+          assigned_to: assignedTo || null,
           due_date: dueDate || null,
+          start_date: startDate || null,
+          labels: labels || null,
           estimated_time: estimatedTime || null,
+          actual_time: actualTime || null,
         })
         .select()
         .single()
@@ -142,7 +161,7 @@ export function useUpdateChecklistItem() {
       if (actual_time !== undefined) updates.actual_time = actual_time
 
       const { data, error } = await supabase
-        .from('task_checklist')
+        .from('tasks')
         .update(updates)
         .eq('id', id)
         .select()
@@ -162,7 +181,7 @@ export function useDeleteChecklistItem() {
 
   return useMutation({
     mutationFn: async ({ id, taskId }: { id: string; taskId: string }) => {
-      const { error } = await supabase.from('task_checklist').delete().eq('id', id)
+      const { error } = await supabase.from('tasks').delete().eq('id', id)
       if (error) throw error
     },
     onSuccess: (_data, variables) => {
@@ -188,7 +207,7 @@ export function useReorderChecklistItems() {
         if (item.status !== undefined) {
           updates.status = item.status
         }
-        return supabase.from('task_checklist').update(updates).eq('id', item.id)
+        return supabase.from('tasks').update(updates).eq('id', item.id)
       })
 
       const results = await Promise.all(promises)
