@@ -2,8 +2,6 @@ import { useState } from 'react'
 import {
   DndContext,
   DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
   PointerSensor,
   useSensor,
   useSensors,
@@ -196,7 +194,6 @@ function DroppableColumn({ statusId, statusName, statusColor, items, onDelete, o
 }
 
 export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
-  const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedSubtask, setSelectedSubtask] = useState<TaskChecklistItem | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -234,13 +231,8 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
     return acc
   }, {} as Record<string, TaskChecklistItem[]>)
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string)
-  }
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
-    setActiveId(null)
 
     if (!over) return
 
@@ -330,8 +322,6 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
     setSelectedSubtask(null)
   }
 
-  const activeItem = activeId ? items.find((i) => i.id === activeId) : null
-
   return (
     <div className="p-4">
       <h3 className="font-semibold text-gray-900 mb-4">Subtasks ({items.length})</h3>
@@ -339,7 +329,6 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <div className="grid grid-cols-3 gap-4">
@@ -356,19 +345,6 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
           ))}
         </div>
 
-        <DragOverlay>
-          {activeItem ? (
-            <div className="bg-white p-3 rounded-lg border-2 border-blue-400 shadow-xl opacity-90">
-              <div className="font-medium text-gray-900 text-sm mb-2">{activeItem.title}</div>
-              <div className="flex items-center gap-2 text-xs text-gray-600">
-                {activeItem.priority && <span className="px-2 py-0.5 rounded-full bg-gray-100">{activeItem.priority}</span>}
-                {activeItem.labels && activeItem.labels.length > 0 && (
-                  <span className="text-gray-500">{activeItem.labels.length} labels</span>
-                )}
-              </div>
-            </div>
-          ) : null}
-        </DragOverlay>
       </DndContext>
 
       {/* Subtask Edit Modal */}
