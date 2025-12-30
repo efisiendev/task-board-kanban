@@ -122,6 +122,59 @@ CREATE TABLE task_activity_log (
 
 ---
 
+#### 1.4 Kanban-Style Subtasks (Notion-Like) 🎯
+**Deskripsi:** Upgrade subtasks dari simple checklist → Mini Kanban board dengan status columns
+
+**Current vs Enhanced:**
+```
+SAAT INI (Simple Checklist):
+☐ Subtask A
+☑ Subtask B
+☐ Subtask C
+
+UPGRADE (Mini Kanban):
+┌──────────┬─────────────┬──────────┐
+│ Todo     │ In Progress │ Done     │
+├──────────┼─────────────┼──────────┤
+│ Subtask A│ Subtask B   │ Subtask C│
+└──────────┴─────────────┴──────────┘
+```
+
+**Technical Implementation:**
+```sql
+-- Update task_checklist table
+ALTER TABLE task_checklist
+  ADD COLUMN status VARCHAR(20) DEFAULT 'todo';
+  -- 'todo', 'in_progress', 'done'
+
+-- Create index for filtering by status
+CREATE INDEX idx_task_checklist_status ON task_checklist(task_id, status);
+
+-- Update order_index to be per-column (not global)
+-- order_index now represents position within the status column
+```
+
+**UI Changes:**
+- Task sidebar: Replace checklist list → 3-column Kanban board
+- Drag-and-drop subtasks antar kolom (todo → in progress → done)
+- Progress indicator tetap show completion percentage
+- Optional: Toggle view antara Board ↔ List view
+
+**Component Updates:**
+- `TaskChecklist.tsx` → Redesign ke 3-column layout
+- Add drag-drop logic untuk move antar status
+- Update hooks untuk handle `status` field
+
+**Benefits:**
+- ✅ Visual progress tracking (seperti Notion)
+- ✅ Lebih detail dari boolean done/not done
+- ✅ Track work in progress vs backlog
+- ✅ Better untuk complex tasks dengan banyak subtasks
+
+**Estimasi:** 1-2 hari
+
+---
+
 ### **PHASE 2: Advanced Features (Week 2)** 🚀
 **Priority:** MEDIUM - Important untuk scalability
 
