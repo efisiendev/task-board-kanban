@@ -99,13 +99,14 @@ export function useCreateTask() {
       labels?: string[] | null
       estimated_time?: number | null
     }) => {
+      // Get current user for created_by
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) throw new Error('Not authenticated')
+
       // Auto-add assigned user to board if needed
       if (assigned_to) {
         await ensureUserIsBoardMember(boardId, assigned_to)
       }
-
-      // Get current user for created_by
-      const { data: { user } } = await supabase.auth.getUser()
 
       // Get first status for this board (To Do)
       const { data: firstStatus } = await supabase
@@ -133,7 +134,7 @@ export function useCreateTask() {
           due_date: due_date || null,
           start_date: start_date || null,
           labels: labels || null,
-          created_by: user?.id || null,
+          created_by: user.id,
           estimated_time: estimated_time || null,
         })
         .select()

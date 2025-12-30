@@ -14,7 +14,7 @@ export function useTaskRelations(taskId: string) {
         .from('task_relations')
         .select(`
           *,
-          to_task:tasks!task_relations_to_task_id_fkey(id, title, status, board_id)
+          to_task:tasks!task_relations_to_task_id_fkey(id, title, status_id, board_id)
         `)
         .eq('from_task_id', taskId)
 
@@ -25,7 +25,7 @@ export function useTaskRelations(taskId: string) {
         .from('task_relations')
         .select(`
           *,
-          from_task:tasks!task_relations_from_task_id_fkey(id, title, status, board_id)
+          from_task:tasks!task_relations_from_task_id_fkey(id, title, status_id, board_id)
         `)
         .eq('to_task_id', taskId)
 

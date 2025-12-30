@@ -97,6 +97,10 @@ export function useCreateChecklistItem() {
         }
       }
 
+      // Get current user for created_by
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) throw new Error('Not authenticated')
+
       const { data, error } = await supabase
         .from('tasks')
         .insert({
@@ -106,7 +110,6 @@ export function useCreateChecklistItem() {
           description: description || null,
           order_index: orderIndex,
           status_id: finalStatusId,
-          is_checklist_item: true,
           depth_level: 1,
           priority: priority || null,
           assigned_to: assignedTo || null,
@@ -115,6 +118,7 @@ export function useCreateChecklistItem() {
           labels: labels || null,
           estimated_time: estimatedTime || null,
           actual_time: actualTime || null,
+          created_by: user.id,
         })
         .select()
         .single()
