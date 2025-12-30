@@ -13,7 +13,7 @@ export function useTaskChecklist(taskId: string) {
         .from('tasks')
         .select('*')
         .eq('parent_task_id', taskId)
-        .order('status, order_index', { ascending: true })
+        .order('order_index', { ascending: true })
 
       if (error) throw error
       return data as TaskChecklistItem[]
@@ -58,7 +58,7 @@ export function useCreateChecklistItem() {
       title,
       description,
       orderIndex,
-      status = 'todo',
+      statusId,
       priority,
       assignedTo,
       dueDate,
@@ -72,7 +72,7 @@ export function useCreateChecklistItem() {
       title: string
       description?: string
       orderIndex: number
-      status?: SubtaskStatus
+      statusId?: string
       priority?: TaskChecklistItem['priority']
       assignedTo?: string | null
       dueDate?: string | null
@@ -81,6 +81,22 @@ export function useCreateChecklistItem() {
       estimatedTime?: number | null
       actualTime?: number | null
     }) => {
+      // Get first status for this board if not provided
+      let finalStatusId = statusId
+      if (!finalStatusId) {
+        const { data: firstStatus } = await supabase
+          .from('board_statuses')
+          .select('id')
+          .eq('board_id', boardId)
+          .order('order_index', { ascending: true })
+          .limit(1)
+          .single()
+
+        if (firstStatus) {
+          finalStatusId = firstStatus.id
+        }
+      }
+
       const { data, error } = await supabase
         .from('tasks')
         .insert({
@@ -89,7 +105,7 @@ export function useCreateChecklistItem() {
           title,
           description: description || null,
           order_index: orderIndex,
-          status,
+          status_id: finalStatusId,
           is_checklist_item: true,
           depth_level: 1,
           priority: priority || null,
@@ -121,7 +137,7 @@ export function useUpdateChecklistItem() {
       taskId,
       title,
       isCompleted,
-      status,
+      status_id,
       orderIndex,
       priority,
       assigned_to,
@@ -134,7 +150,7 @@ export function useUpdateChecklistItem() {
       taskId: string
       title?: string
       isCompleted?: boolean
-      status?: SubtaskStatus
+      status_id?: string
       orderIndex?: number
       priority?: TaskChecklistItem['priority']
       assigned_to?: string | null
@@ -146,7 +162,7 @@ export function useUpdateChecklistItem() {
       const updates: Record<string, unknown> = {}
       if (title !== undefined) updates.title = title
       if (isCompleted !== undefined) updates.is_completed = isCompleted
-      if (status !== undefined) updates.status = status
+      if (status_id !== undefined) updates.status_id = status_id
       if (orderIndex !== undefined) updates.order_index = orderIndex
       if (priority !== undefined) updates.priority = priority
       if (assigned_to !== undefined) updates.assigned_to = assigned_to
@@ -194,13 +210,13 @@ export function useReorderChecklistItems() {
       items,
     }: {
       taskId: string
-      items: { id: string; order_index: number; status?: SubtaskStatus }[]
+      items: { id: string; order_index: number; status_id?: string }[]
     }) => {
       // Update all items in a transaction-like manner
       const promises = items.map((item) => {
         const updates: Record<string, unknown> = { order_index: item.order_index }
-        if (item.status !== undefined) {
-          updates.status = item.status
+        if (item.status_id !== undefined) {
+          updates.status_id = item.status_id
         }
         return supabase.from('tasks').update(updates).eq('id', item.id)
       })

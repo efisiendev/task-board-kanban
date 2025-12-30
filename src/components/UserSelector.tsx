@@ -20,7 +20,8 @@ export default function UserSelector({ value, onChange, placeholder }: UserSelec
       user.email.toLowerCase().includes(search) ||
       user.username?.toLowerCase().includes(search) ||
       user.employee_number?.toLowerCase().includes(search) ||
-      user.division?.toLowerCase().includes(search)
+      user.full_name?.toLowerCase().includes(search) ||
+      user.department?.toLowerCase().includes(search)
     )
   })
 
@@ -40,8 +41,8 @@ export default function UserSelector({ value, onChange, placeholder }: UserSelec
               {selectedUser.employee_number && (
                 <span className="text-gray-500"> - {selectedUser.employee_number}</span>
               )}
-              {selectedUser.division && (
-                <span className="text-gray-500"> - {selectedUser.division}</span>
+              {selectedUser.full_name && (
+                <span className="text-gray-500"> - {selectedUser.full_name}</span>
               )}
             </div>
           </div>
@@ -62,7 +63,7 @@ export default function UserSelector({ value, onChange, placeholder }: UserSelec
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by email, name, number, or division..."
+                placeholder="Search by email, name, number, or department..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                 onClick={(e) => e.stopPropagation()}
               />
@@ -94,9 +95,9 @@ export default function UserSelector({ value, onChange, placeholder }: UserSelec
                       <div className="flex-1">
                         <div className="font-medium text-sm text-gray-900">{user.email}</div>
                         <div className="text-xs text-gray-500 flex gap-2">
-                          {user.username && <span>{user.username}</span>}
+                          {user.full_name && <span>{user.full_name}</span>}
                           {user.employee_number && <span>#{user.employee_number}</span>}
-                          {user.division && <span>• {user.division}</span>}
+                          {user.department && <span>• {user.department}</span>}
                         </div>
                       </div>
                     </div>

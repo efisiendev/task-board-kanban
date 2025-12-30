@@ -118,9 +118,6 @@ export default function TaskModal({
 
       if (existing) return // Already a member
 
-      // Get current user (who is assigning)
-      const { data: { user } } = await supabase.auth.getUser()
-
       // Add as board member with 'member' role
       await supabase
         .from('board_members')
@@ -128,7 +125,6 @@ export default function TaskModal({
           board_id: boardId,
           user_id: userId,
           role: 'member',
-          invited_by: user?.id || null,
         })
     } catch (error) {
       console.error('Failed to add board member:', error)

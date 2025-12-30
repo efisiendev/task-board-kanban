@@ -19,7 +19,7 @@
 -- ============================================================================
 
 -- ============================================================================
--- PART 1: EXTENSIONS & HELPER FUNCTIONS
+-- PART 1: EXTENSIONS & BASIC FUNCTIONS
 -- ============================================================================
 
 -- Enable UUID generation
@@ -33,27 +33,6 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
--- Helper function: Check if user is board member
-CREATE OR REPLACE FUNCTION is_board_member(board_uuid UUID, user_uuid UUID)
-RETURNS BOOLEAN AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM board_members
-    WHERE board_id = board_uuid
-    AND user_id = user_uuid
-  );
-$$ LANGUAGE SQL STABLE SECURITY DEFINER;
-
--- Helper function: Check if user is board owner/admin
-CREATE OR REPLACE FUNCTION is_board_admin(board_uuid UUID, user_uuid UUID)
-RETURNS BOOLEAN AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM board_members
-    WHERE board_id = board_uuid
-    AND user_id = user_uuid
-    AND role IN ('owner', 'admin')
-  );
-$$ LANGUAGE SQL STABLE SECURITY DEFINER;
 
 -- ============================================================================
 -- PART 2: CORE TABLES
@@ -88,12 +67,12 @@ CREATE TABLE IF NOT EXISTS boards (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(255) NOT NULL,
   description TEXT,
-  created_by UUID NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_boards_created_by ON boards(created_by);
+CREATE INDEX IF NOT EXISTS idx_boards_user_id ON boards(user_id);
 
 -- Trigger: Update updated_at
 CREATE TRIGGER trigger_boards_updated_at
@@ -152,12 +131,41 @@ CREATE TRIGGER trigger_board_members_updated_at
   BEFORE UPDATE ON board_members
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- ----------------------------------------------------------------------------
+-- Helper Functions (require board_members table to exist)
+-- ----------------------------------------------------------------------------
+
+-- Helper function: Check if user is board member
+CREATE OR REPLACE FUNCTION is_board_member(board_uuid UUID, user_uuid UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM board_members
+    WHERE board_id = board_uuid
+    AND user_id = user_uuid
+  );
+$$ LANGUAGE SQL STABLE SECURITY DEFINER;
+
+-- Helper function: Check if user is board owner/admin
+CREATE OR REPLACE FUNCTION is_board_admin(board_uuid UUID, user_uuid UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM board_members
+    WHERE board_id = board_uuid
+    AND user_id = user_uuid
+    AND role IN ('owner', 'admin')
+  );
+$$ LANGUAGE SQL STABLE SECURITY DEFINER;
+
+-- ----------------------------------------------------------------------------
+-- Board Triggers (require helper functions)
+-- ----------------------------------------------------------------------------
+
 -- Trigger: Auto-add board creator as owner
 CREATE OR REPLACE FUNCTION add_board_creator_as_owner()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO board_members (board_id, user_id, role)
-  VALUES (NEW.id, NEW.created_by, 'owner');
+  VALUES (NEW.id, NEW.user_id, 'owner');
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -239,16 +247,17 @@ RETURNS TABLE (
   id UUID,
   title VARCHAR,
   depth_level INTEGER,
-  parent_task_id UUID
+  parent_task_id UUID,
+  order_index DECIMAL
 ) AS $$
   WITH RECURSIVE task_tree AS (
-    SELECT t.id, t.title, t.depth_level, t.parent_task_id
+    SELECT t.id, t.title, t.depth_level, t.parent_task_id, t.order_index
     FROM tasks t
     WHERE t.id = root_task_id
 
     UNION ALL
 
-    SELECT t.id, t.title, t.depth_level, t.parent_task_id
+    SELECT t.id, t.title, t.depth_level, t.parent_task_id, t.order_index
     FROM tasks t
     INNER JOIN task_tree tt ON t.parent_task_id = tt.id
   )
@@ -453,11 +462,16 @@ CREATE POLICY "Users can update own profile"
 -- ----------------------------------------------------------------------------
 CREATE POLICY "Users can view boards they are members of"
   ON boards FOR SELECT
-  USING (is_board_member(id, auth.uid()));
+  USING (
+    auth.uid() = user_id  -- User is board owner
+    OR
+    is_board_member(id, auth.uid())  -- User is board member
+  );
 
 CREATE POLICY "Authenticated users can create boards"
   ON boards FOR INSERT
-  WITH CHECK (auth.uid() IS NOT NULL AND auth.uid() = created_by);
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Board owners/admins can update boards"
   ON boards FOR UPDATE
@@ -660,6 +674,30 @@ ALTER PUBLICATION supabase_realtime ADD TABLE task_relations;
 ALTER PUBLICATION supabase_realtime ADD TABLE task_comments;
 ALTER PUBLICATION supabase_realtime ADD TABLE task_activity_log;
 ALTER PUBLICATION supabase_realtime ADD TABLE task_pages;
+
+-- ============================================================================
+-- PART 6: AUTH TRIGGERS
+-- ============================================================================
+
+-- Function: Auto-create user profile when user signs up
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.user_profiles (user_id, email, employee_number)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    'EMP-' || SUBSTRING(NEW.id::text, 1, 8)
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger: Auto-create profile on user signup
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
 -- ============================================================================
 -- END OF SCHEMA

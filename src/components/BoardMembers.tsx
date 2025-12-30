@@ -127,8 +127,8 @@ export default function BoardMembers({ boardId, isOwner }: BoardMembersProps) {
                     {member.user_profiles?.employee_number && (
                       <span>#{member.user_profiles.employee_number}</span>
                     )}
-                    {member.user_profiles?.division && (
-                      <span>• {member.user_profiles.division}</span>
+                    {member.user_profiles?.department && (
+                      <span>• {member.user_profiles.department}</span>
                     )}
                   </div>
                 </div>

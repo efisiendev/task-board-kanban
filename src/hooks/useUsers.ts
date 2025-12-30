@@ -7,7 +7,7 @@ export interface UserWithEmail {
   email: string
   username: string | null
   employee_number: string | null
-  division: string | null
+  full_name: string | null
   department: string | null
   position: string | null
 }

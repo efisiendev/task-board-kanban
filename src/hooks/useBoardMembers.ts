@@ -13,10 +13,10 @@ export function useBoardMembers(boardId: string) {
         .from('board_members')
         .select(`
           *,
-          user_profiles(email, username, employee_number, division)
+          user_profiles(email, username, employee_number, full_name, avatar_url)
         `)
         .eq('board_id', boardId)
-        .order('joined_at', { ascending: true })
+        .order('created_at', { ascending: true })
 
       if (error) throw error
       return data as BoardMemberWithProfile[]
@@ -62,15 +62,12 @@ export function useAddBoardMember() {
       userId: string
       role: BoardMemberRole
     }) => {
-      const { data: { user } } = await supabase.auth.getUser()
-
       const { data, error } = await supabase
         .from('board_members')
         .insert({
           board_id: boardId,
           user_id: userId,
           role: role || 'member',
-          invited_by: user?.id,
         })
         .select()
         .single()

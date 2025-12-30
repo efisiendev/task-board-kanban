@@ -17,15 +17,11 @@ async function ensureUserIsBoardMember(boardId: string, userId: string) {
 
   // If not a member, add them
   if (!existingMember) {
-    const { data: { user } } = await supabase.auth.getUser()
-
     await supabase.from('board_members').insert({
       board_id: boardId,
       user_id: userId,
       role: 'member',
-      invited_by: user?.id || null,
     })
-
   }
 }
 
@@ -130,7 +126,6 @@ export function useCreateTask() {
           board_id: boardId,
           title,
           description: description || null,
-          status: 'to_do', // Keep for backward compatibility
           status_id: firstStatus.id,
           order_index: 0,
           priority: priority || null,

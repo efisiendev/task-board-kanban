@@ -13,8 +13,8 @@ export interface BoardMember {
   board_id: string
   user_id: string
   role: BoardMemberRole
-  invited_by: string | null
-  joined_at: string
+  created_at: string
+  updated_at: string
 }
 
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -35,11 +35,9 @@ export interface Task {
   board_id: string
   title: string
   description: string | null
-  status: 'to_do' | 'in_progress' | 'done' // Legacy field, kept for backward compatibility
   status_id: string
   board_status?: BoardStatus // Joined from board_statuses
   order_index: number
-  // New properties
   priority: TaskPriority | null
   assigned_to: string | null
   due_date: string | null
@@ -61,9 +59,9 @@ export interface User {
 export interface UserProfile {
   user_id: string
   email: string
-  username: string
+  username: string | null
   employee_number: string
-  division: string | null
+  full_name: string | null
   department: string | null
   position: string | null
   avatar_url: string | null
@@ -75,16 +73,13 @@ export interface UserWithProfile extends User {
   profile?: UserProfile
 }
 
-export type SubtaskStatus = 'todo' | 'in_progress' | 'done'
-
 export interface TaskChecklistItem {
   id: string
   task_id: string
   title: string
   is_completed: boolean
-  status: SubtaskStatus
+  status_id: string
   order_index: number
-  // Properties (same as Task)
   priority: TaskPriority | null
   assigned_to: string | null
   due_date: string | null
