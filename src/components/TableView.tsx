@@ -36,10 +36,10 @@ export function TableView({ tasks, onTaskClick }: TableViewProps) {
       bVal = b.priority ? priorityOrder[b.priority] : 0
     }
 
-    // Special handling for status
+    // Special handling for status - using board_status name
     if (sortField === 'status') {
-      aVal = statusOrder[a.status]
-      bVal = statusOrder[b.status]
+      aVal = a.board_status?.name || ''
+      bVal = b.board_status?.name || ''
     }
 
     // Handle null values
@@ -159,7 +159,7 @@ function TableRow({ task, onClick }: TableRowProps) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done'
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.board_status?.name !== 'Done'
 
   return (
     <tr
@@ -180,8 +180,11 @@ function TableRow({ task, onClick }: TableRowProps) {
 
       {/* Status */}
       <td className="px-4 py-3">
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[task.status]}`}>
-          {task.status.replace('_', ' ')}
+        <span
+          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+          style={{ backgroundColor: task.board_status?.color, color: '#fff' }}
+        >
+          {task.board_status?.name || 'No Status'}
         </span>
       </td>
 

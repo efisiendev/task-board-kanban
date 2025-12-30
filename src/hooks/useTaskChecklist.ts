@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { TaskChecklistItem, SubtaskStatus } from '../types'
+import { TaskChecklistItem } from '../types'
 
 export function useTaskChecklist(taskId: string) {
   const queryClient = useQueryClient()

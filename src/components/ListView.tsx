@@ -80,7 +80,7 @@ function ListItem({ task, onClick }: ListItemProps) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done'
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.board_status?.name !== 'Done'
 
   return (
     <div
