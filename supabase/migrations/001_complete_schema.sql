@@ -494,12 +494,36 @@ CREATE POLICY "Board owners can delete boards"
 -- ----------------------------------------------------------------------------
 CREATE POLICY "Users can view board statuses for their boards"
   ON board_statuses FOR SELECT
-  USING (is_board_member(board_id, auth.uid()));
+  USING (
+    EXISTS (
+      SELECT 1 FROM boards
+      WHERE boards.id = board_statuses.board_id
+      AND boards.user_id = auth.uid()
+    )
+    OR
+    is_board_member(board_id, auth.uid())
+  );
 
-CREATE POLICY "Board admins can manage statuses"
+CREATE POLICY "Board owners and admins can manage statuses"
   ON board_statuses FOR ALL
-  USING (is_board_admin(board_id, auth.uid()))
-  WITH CHECK (is_board_admin(board_id, auth.uid()));
+  USING (
+    EXISTS (
+      SELECT 1 FROM boards
+      WHERE boards.id = board_statuses.board_id
+      AND boards.user_id = auth.uid()
+    )
+    OR
+    is_board_admin(board_id, auth.uid())
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM boards
+      WHERE boards.id = board_statuses.board_id
+      AND boards.user_id = auth.uid()
+    )
+    OR
+    is_board_admin(board_id, auth.uid())
+  );
 
 -- ----------------------------------------------------------------------------
 -- Board Members Policies
@@ -531,24 +555,64 @@ CREATE POLICY "Board owners/admins can delete members"
 -- ----------------------------------------------------------------------------
 CREATE POLICY "Users can view tasks in their boards"
   ON tasks FOR SELECT
-  USING (is_board_member(board_id, auth.uid()));
+  USING (
+    EXISTS (
+      SELECT 1 FROM boards
+      WHERE boards.id = tasks.board_id
+      AND boards.user_id = auth.uid()
+    )
+    OR
+    is_board_member(board_id, auth.uid())
+  );
 
 CREATE POLICY "Board members can create tasks"
   ON tasks FOR INSERT
   WITH CHECK (
-    is_board_member(board_id, auth.uid())
+    (
+      EXISTS (
+        SELECT 1 FROM boards
+        WHERE boards.id = board_id
+        AND boards.user_id = auth.uid()
+      )
+      OR
+      is_board_member(board_id, auth.uid())
+    )
     AND auth.uid() = created_by
   );
 
 CREATE POLICY "Board members can update tasks"
   ON tasks FOR UPDATE
-  USING (is_board_member(board_id, auth.uid()))
-  WITH CHECK (is_board_member(board_id, auth.uid()));
+  USING (
+    EXISTS (
+      SELECT 1 FROM boards
+      WHERE boards.id = tasks.board_id
+      AND boards.user_id = auth.uid()
+    )
+    OR
+    is_board_member(board_id, auth.uid())
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM boards
+      WHERE boards.id = tasks.board_id
+      AND boards.user_id = auth.uid()
+    )
+    OR
+    is_board_member(board_id, auth.uid())
+  );
 
 CREATE POLICY "Task creators and board admins can delete tasks"
   ON tasks FOR DELETE
   USING (
-    is_board_member(board_id, auth.uid())
+    (
+      EXISTS (
+        SELECT 1 FROM boards
+        WHERE boards.id = tasks.board_id
+        AND boards.user_id = auth.uid()
+      )
+      OR
+      is_board_member(board_id, auth.uid())
+    )
     AND (created_by = auth.uid() OR is_board_admin(board_id, auth.uid()))
   );
 
