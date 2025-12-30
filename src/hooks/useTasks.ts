@@ -60,7 +60,7 @@ export function useTasks(boardId: string) {
           event: '*',
           schema: 'public',
           table: 'tasks',
-          filter: `board_id=eq.${boardId},parent_task_id=is.null`,
+          filter: `board_id=eq.${boardId}`,
         },
         (payload) => {
           console.log('✅ Realtime event received:', payload)

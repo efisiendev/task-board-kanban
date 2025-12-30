@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
@@ -27,6 +27,17 @@ export default function Board() {
   // Check if current user is board owner
   const currentBoard = boards.find((b) => b.id === boardId)
   const isOwner = currentBoard?.user_id === user?.id
+
+  // Sync editingTask with updated tasks array (for Realtime updates)
+  useEffect(() => {
+    if (editingTask && tasks.length > 0) {
+      const updatedTask = tasks.find((t) => t.id === editingTask.id)
+      if (updatedTask) {
+        setEditingTask(updatedTask)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks])
 
   const filteredTasks = tasks.filter((task) =>
     task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

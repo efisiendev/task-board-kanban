@@ -108,3 +108,15 @@ export interface TaskActivity {
   details: Record<string, unknown> | null
   created_at: string
 }
+
+export interface TaskPage {
+  id: string
+  task_id: string
+  title: string
+  content: string | null
+  content_type: 'html' | 'json'
+  order_index: number
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
