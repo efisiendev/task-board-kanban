@@ -19,12 +19,25 @@ export interface BoardMember {
 
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 
+export interface BoardStatus {
+  id: string
+  board_id: string
+  name: string
+  color: string
+  order_index: number
+  is_default: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Task {
   id: string
   board_id: string
   title: string
   description: string | null
-  status: 'to_do' | 'in_progress' | 'done'
+  status: 'to_do' | 'in_progress' | 'done' // Legacy field, kept for backward compatibility
+  status_id: string
+  board_status?: BoardStatus // Joined from board_statuses
   order_index: number
   // New properties
   priority: TaskPriority | null

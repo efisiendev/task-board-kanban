@@ -1,36 +1,24 @@
-import { Task } from '../types'
+import { Task, BoardStatus } from '../types'
 import { useUserProfile } from '../hooks/useUsers'
 
 interface ListViewProps {
   tasks: Task[]
+  statuses: BoardStatus[]
   onTaskClick: (task: Task) => void
 }
 
-export function ListView({ tasks, onTaskClick }: ListViewProps) {
-  const todoTasks = tasks.filter((t) => t.status === 'to_do')
-  const inProgressTasks = tasks.filter((t) => t.status === 'in_progress')
-  const doneTasks = tasks.filter((t) => t.status === 'done')
-
+export function ListView({ tasks, statuses, onTaskClick }: ListViewProps) {
   return (
     <div className="space-y-6">
-      <ListSection
-        title="To Do"
-        tasks={todoTasks}
-        onTaskClick={onTaskClick}
-        emptyMessage="No tasks to do"
-      />
-      <ListSection
-        title="In Progress"
-        tasks={inProgressTasks}
-        onTaskClick={onTaskClick}
-        emptyMessage="No tasks in progress"
-      />
-      <ListSection
-        title="Done"
-        tasks={doneTasks}
-        onTaskClick={onTaskClick}
-        emptyMessage="No completed tasks"
-      />
+      {statuses.map((status) => (
+        <ListSection
+          key={status.id}
+          title={status.name}
+          tasks={tasks.filter((t) => t.status_id === status.id)}
+          onTaskClick={onTaskClick}
+          emptyMessage={`No tasks in ${status.name.toLowerCase()}`}
+        />
+      ))}
     </div>
   )
 }

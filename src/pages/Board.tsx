@@ -4,11 +4,13 @@ import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '../hooks/
 import { useAuth } from '../hooks/useAuth'
 import { useBoards } from '../hooks/useBoards'
 import { useBoardMembers } from '../hooks/useBoardMembers'
+import { useBoardStatuses } from '../hooks/useBoardStatuses'
 import KanbanBoard from '../components/KanbanBoard'
 import { TableView } from '../components/TableView'
 import { ListView } from '../components/ListView'
 import TaskModal, { TaskFormData } from '../components/TaskModal'
 import BoardMembers from '../components/BoardMembers'
+import BoardStatusManager from '../components/BoardStatusManager'
 import { FilterSidebar, TaskFilters } from '../components/FilterSidebar'
 import { Task } from '../types'
 
@@ -29,6 +31,7 @@ export default function Board() {
   const { data: boards = [] } = useBoards()
   const { data: tasks = [], isLoading } = useTasks(boardId!)
   const { data: members = [] } = useBoardMembers(boardId!)
+  const { data: statuses = [] } = useBoardStatuses(boardId!)
   const createTaskMutation = useCreateTask()
   const updateTaskMutation = useUpdateTask()
   const deleteTaskMutation = useDeleteTask()
@@ -37,6 +40,8 @@ export default function Board() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showMembers, setShowMembers] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [showStatuses, setShowStatuses] = useState(false)
+  const [showNewMenu, setShowNewMenu] = useState(false)
   const [currentView, setCurrentView] = useState<ViewType>('kanban')
   const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS)
 
@@ -63,8 +68,8 @@ export default function Board() {
       task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()))
 
-    // Status filter
-    const matchesStatus = filters.status.length === 0 || filters.status.includes(task.status)
+    // Status filter (using status_id)
+    const matchesStatus = filters.status.length === 0 || filters.status.includes(task.status_id)
 
     // Priority filter
     const matchesPriority = filters.priority.length === 0 || (task.priority && filters.priority.includes(task.priority))
@@ -196,94 +201,184 @@ export default function Board() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition"
-            >
-              🔍 Filters
-            </button>
-            <button
-              onClick={() => setShowMembers(!showMembers)}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition"
-            >
-              👥 Members ({members.length})
-            </button>
-            <button
-              onClick={() => {
-                setEditingTask(null)
-                setIsModalOpen(true)
-              }}
-              className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition"
-            >
-              New Task
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  showFilters
+                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                }`}
+              >
+                🔍 Filter
+              </button>
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => setShowMembers(!showMembers)}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  showMembers
+                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                }`}
+              >
+                👥 Members
+              </button>
+            </div>
+            {/* New Dropdown Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNewMenu(!showNewMenu)}
+                className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition flex items-center gap-2"
+              >
+                New
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {showNewMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowNewMenu(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                    <button
+                      onClick={() => {
+                        setEditingTask(null)
+                        setIsModalOpen(true)
+                        setShowNewMenu(false)
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-gray-700"
+                    >
+                      <span className="text-lg">📝</span>
+                      New Task
+                    </button>
+                    {isOwner && (
+                      <>
+                        <div className="border-t border-gray-200 my-1" />
+                        <button
+                          onClick={() => {
+                            setShowStatuses(true)
+                            setShowNewMenu(false)
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-gray-700"
+                        >
+                          <span className="text-lg">⚙️</span>
+                          Board Settings
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-12">
+      <main className="w-full py-12">
         <div className="flex gap-6">
           {/* Filter Sidebar */}
           {showFilters && (
-            <FilterSidebar
-              filters={filters}
-              onChange={setFilters}
-              onClear={() => setFilters(DEFAULT_FILTERS)}
-            />
+            <div className="pl-4">
+              <FilterSidebar
+                filters={filters}
+                statuses={statuses}
+                onChange={setFilters}
+                onClear={() => setFilters(DEFAULT_FILTERS)}
+              />
+            </div>
           )}
 
           {/* Board Views */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {isLoading ? (
-              <div className="text-center text-gray-600">Loading tasks...</div>
+              <div className="text-center text-gray-600 px-4">Loading tasks...</div>
             ) : currentView === 'kanban' ? (
-              <KanbanBoard
-                tasks={filteredTasks}
-                onTaskClick={(task) => {
-                  setEditingTask(task)
-                  setIsModalOpen(true)
-                }}
-                onTaskMoved={async (taskId, newStatus, newOrderIndex) => {
-                  try {
-                    await updateTaskMutation.mutateAsync({
-                      id: taskId,
-                      boardId: boardId!,
-                      status: newStatus as 'to_do' | 'in_progress' | 'done',
-                      order_index: newOrderIndex,
-                    })
-                  } catch (error) {
-                    console.error('Failed to move task:', error)
-                  }
-                }}
-              />
-            ) : currentView === 'table' ? (
-              <TableView
-                tasks={filteredTasks}
-                onTaskClick={(task) => {
-                  setEditingTask(task)
-                  setIsModalOpen(true)
-                }}
-              />
+              <div className={showFilters || showMembers ? '' : 'px-4'}>
+                <KanbanBoard
+                  tasks={filteredTasks}
+                  statuses={statuses}
+                  onTaskClick={(task) => {
+                    setEditingTask(task)
+                    setIsModalOpen(true)
+                  }}
+                  onTaskMoved={async (taskId, newStatusId, newOrderIndex) => {
+                    try {
+                      await updateTaskMutation.mutateAsync({
+                        id: taskId,
+                        boardId: boardId!,
+                        status_id: newStatusId,
+                        order_index: newOrderIndex,
+                      })
+                    } catch (error) {
+                      console.error('Failed to move task:', error)
+                    }
+                  }}
+                />
+              </div>
             ) : (
-              <ListView
-                tasks={filteredTasks}
-                onTaskClick={(task) => {
-                  setEditingTask(task)
-                  setIsModalOpen(true)
-                }}
-              />
+              <div className="px-4">
+                {currentView === 'table' ? (
+                  <TableView
+                    tasks={filteredTasks}
+                    onTaskClick={(task) => {
+                      setEditingTask(task)
+                      setIsModalOpen(true)
+                    }}
+                  />
+                ) : (
+                  <ListView
+                    tasks={filteredTasks}
+                    statuses={statuses}
+                    onTaskClick={(task) => {
+                      setEditingTask(task)
+                      setIsModalOpen(true)
+                    }}
+                  />
+                )}
+              </div>
             )}
           </div>
 
           {/* Members Sidebar */}
           {showMembers && (
-            <div className="w-80">
+            <div className="w-80 pr-4">
               <BoardMembers boardId={boardId!} isOwner={isOwner} />
             </div>
           )}
         </div>
       </main>
+
+      {/* Settings Sidebar (Overlay) */}
+      {showStatuses && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-20 z-40"
+            onClick={() => setShowStatuses(false)}
+          />
+          {/* Sidebar */}
+          <div className="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Board Settings</h2>
+              <button
+                onClick={() => setShowStatuses(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              <BoardStatusManager boardId={boardId!} isOwner={isOwner} />
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Task Modal */}
       {isModalOpen && (

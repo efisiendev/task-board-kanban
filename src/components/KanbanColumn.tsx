@@ -3,22 +3,37 @@ import { Task } from '../types'
 import TaskCard from './TaskCard'
 
 interface KanbanColumnProps {
-  status: string
+  statusId: string
   statusLabel: string
+  statusColor: string
   tasks: Task[]
   onTaskClick: (task: Task) => void
 }
 
+const COLOR_CLASSES: Record<string, string> = {
+  gray: 'bg-gray-100',
+  blue: 'bg-blue-50',
+  green: 'bg-green-50',
+  yellow: 'bg-yellow-50',
+  orange: 'bg-orange-50',
+  red: 'bg-red-50',
+  purple: 'bg-purple-50',
+  pink: 'bg-pink-50',
+}
+
 export default function KanbanColumn({
-  status,
+  statusId,
   statusLabel,
+  statusColor,
   tasks,
   onTaskClick,
 }: KanbanColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: status, data: { status } })
+  const { setNodeRef, isOver } = useDroppable({ id: statusId, data: { statusId } })
+
+  const bgColor = COLOR_CLASSES[statusColor] || 'bg-gray-100'
 
   return (
-    <div className={`flex flex-col bg-gray-100 rounded-lg p-4 min-h-96 transition ${isOver ? 'bg-blue-50 ring-2 ring-blue-400' : ''}`}>
+    <div className={`flex flex-col ${bgColor} rounded-lg p-4 min-h-96 w-80 flex-shrink-0 transition ${isOver ? 'ring-2 ring-blue-400' : ''}`}>
       <h2 className="font-semibold text-gray-900 mb-4">
         {statusLabel} <span className="text-gray-600 text-sm">({tasks.length})</span>
       </h2>

@@ -1,8 +1,8 @@
-import { TaskPriority } from '../types'
+import { TaskPriority, BoardStatus } from '../types'
 import { useUsers } from '../hooks/useUsers'
 
 export interface TaskFilters {
-  status: string[]
+  status: string[] // status_ids
   priority: TaskPriority[]
   assignee: string[]
   hasLabels: boolean | null
@@ -11,17 +11,18 @@ export interface TaskFilters {
 
 interface FilterSidebarProps {
   filters: TaskFilters
+  statuses: BoardStatus[]
   onChange: (filters: TaskFilters) => void
   onClear: () => void
 }
 
-export function FilterSidebar({ filters, onChange, onClear }: FilterSidebarProps) {
+export function FilterSidebar({ filters, statuses, onChange, onClear }: FilterSidebarProps) {
   const { data: users = [] } = useUsers()
 
-  const toggleStatus = (status: string) => {
-    const newStatuses = filters.status.includes(status)
-      ? filters.status.filter((s) => s !== status)
-      : [...filters.status, status]
+  const toggleStatus = (statusId: string) => {
+    const newStatuses = filters.status.includes(statusId)
+      ? filters.status.filter((s) => s !== statusId)
+      : [...filters.status, statusId]
     onChange({ ...filters, status: newStatuses })
   }
 
@@ -65,21 +66,14 @@ export function FilterSidebar({ filters, onChange, onClear }: FilterSidebarProps
       <div>
         <h4 className="text-sm font-medium text-gray-700 mb-2">Status</h4>
         <div className="space-y-1.5">
-          <FilterCheckbox
-            label="To Do"
-            checked={filters.status.includes('to_do')}
-            onChange={() => toggleStatus('to_do')}
-          />
-          <FilterCheckbox
-            label="In Progress"
-            checked={filters.status.includes('in_progress')}
-            onChange={() => toggleStatus('in_progress')}
-          />
-          <FilterCheckbox
-            label="Done"
-            checked={filters.status.includes('done')}
-            onChange={() => toggleStatus('done')}
-          />
+          {statuses.map((status) => (
+            <FilterCheckbox
+              key={status.id}
+              label={status.name}
+              checked={filters.status.includes(status.id)}
+              onChange={() => toggleStatus(status.id)}
+            />
+          ))}
         </div>
       </div>
 

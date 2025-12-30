@@ -38,7 +38,10 @@ export function useTasks(boardId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tasks')
-        .select('*')
+        .select(`
+          *,
+          board_status:board_statuses!tasks_status_id_fkey(id, name, color, order_index)
+        `)
         .eq('board_id', boardId)
         .is('parent_task_id', null)
         .order('order_index', { ascending: true })
@@ -113,13 +116,27 @@ export function useCreateTask() {
       // Get current user for created_by
       const { data: { user } } = await supabase.auth.getUser()
 
+      // Get first status for this board (To Do)
+      const { data: firstStatus } = await supabase
+        .from('board_statuses')
+        .select('id')
+        .eq('board_id', boardId)
+        .order('order_index', { ascending: true })
+        .limit(1)
+        .single()
+
+      if (!firstStatus) {
+        throw new Error('No statuses found for this board')
+      }
+
       const { data, error } = await supabase
         .from('tasks')
         .insert({
           board_id: boardId,
           title,
           description: description || null,
-          status: 'to_do',
+          status: 'to_do', // Keep for backward compatibility
+          status_id: firstStatus.id,
           order_index: 0,
           priority: priority || null,
           assigned_to: assigned_to || null,
@@ -151,7 +168,8 @@ export function useUpdateTask() {
         boardId: string
         title?: string
         description?: string
-        status?: string
+        status?: string // Legacy field, kept for backward compatibility
+        status_id?: string
         order_index?: number
         priority?: TaskPriority | null
         assigned_to?: string | null

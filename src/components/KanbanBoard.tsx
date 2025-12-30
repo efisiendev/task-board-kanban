@@ -6,17 +6,17 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { Task } from '../types'
+import { Task, BoardStatus } from '../types'
 import KanbanColumn from './KanbanColumn'
 
 interface KanbanBoardProps {
   tasks: Task[]
+  statuses: BoardStatus[]
   onTaskClick: (task: Task) => void
-  onTaskMoved: (taskId: string, newStatus: string, newOrderIndex: number) => void
+  onTaskMoved: (taskId: string, newStatusId: string, newOrderIndex: number) => void
 }
 
-export default function KanbanBoard({ tasks, onTaskClick, onTaskMoved }: KanbanBoardProps) {
-  const statuses = ['to_do', 'in_progress', 'done'] as const
+export default function KanbanBoard({ tasks, statuses, onTaskClick, onTaskMoved }: KanbanBoardProps) {
 
   // Configure pointer sensor for better drag detection
   const sensors = useSensors(
@@ -34,25 +34,25 @@ export default function KanbanBoard({ tasks, onTaskClick, onTaskMoved }: KanbanB
 
     const taskId = active.id as string
     const overData = over.data?.current
-    
-    // Determine the target status
-    let newStatus = ''
-    
+
+    // Determine the target status ID
+    let newStatusId = ''
+
     // If over is a column (droppable area)
-    if (overData?.status) {
-      newStatus = overData.status
+    if (overData?.statusId) {
+      newStatusId = overData.statusId
     } else {
       // If over is a task, find its status
       const overTask = tasks.find((t) => t.id === over.id)
       if (overTask) {
-        newStatus = overTask.status
+        newStatusId = overTask.status_id
       }
     }
 
-    if (!newStatus) return
+    if (!newStatusId) return
 
     const tasksInStatus = tasks
-      .filter((t) => t.status === newStatus)
+      .filter((t) => t.status_id === newStatusId)
       .sort((a, b) => a.order_index - b.order_index)
 
     let newOrderIndex = 0
@@ -74,23 +74,24 @@ export default function KanbanBoard({ tasks, onTaskClick, onTaskMoved }: KanbanB
       }
     }
 
-    onTaskMoved(taskId, newStatus, newOrderIndex)
+    onTaskMoved(taskId, newStatusId, newOrderIndex)
   }
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {statuses.map((status) => (
-          <KanbanColumn
-            key={status}
-            status={status}
-            statusLabel={
-              status === 'to_do' ? 'To Do' : status === 'in_progress' ? 'In Progress' : 'Done'
-            }
-            tasks={tasks.filter((t) => t.status === status)}
-            onTaskClick={onTaskClick}
-          />
-        ))}
+      <div className="overflow-x-auto pb-4">
+        <div className="flex gap-6" style={{ minWidth: `${statuses.length * 320}px` }}>
+          {statuses.map((status) => (
+            <KanbanColumn
+              key={status.id}
+              statusId={status.id}
+              statusLabel={status.name}
+              statusColor={status.color}
+              tasks={tasks.filter((t) => t.status_id === status.id)}
+              onTaskClick={onTaskClick}
+            />
+          ))}
+        </div>
       </div>
     </DndContext>
   )
