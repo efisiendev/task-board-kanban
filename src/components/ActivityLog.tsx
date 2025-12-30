@@ -39,12 +39,12 @@ function ActivityItem({ activity }: ActivityItemProps) {
       case 'assigned':
         return details?.assigned_to ? 'assigned this task' : 'unassigned this task'
       case 'updated': {
-        const changes = []
+        const changes: string[] = []
         const detailsObj = details as Record<string, { from?: string; to?: string }> | null
-        if (detailsObj?.title) changes.push(`changed title`)
+        if (detailsObj?.title) changes.push('changed title')
         if (detailsObj?.status) changes.push(`changed status to ${detailsObj.status.to}`)
         if (detailsObj?.priority) changes.push(`changed priority to ${detailsObj.priority.to}`)
-        if (detailsObj?.due_date) changes.push(`updated due date`)
+        if (detailsObj?.due_date) changes.push('updated due date')
         return changes.length > 0 ? changes.join(', ') : 'updated this task'
       }
       case 'moved':

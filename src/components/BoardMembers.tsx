@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useBoardMembers, useAddBoardMember, useRemoveBoardMember } from '../hooks/useBoardMembers'
-import { useUsers } from '../hooks/useUsers'
 import UserSelector from './UserSelector'
 import { BoardMemberRole } from '../types'
 
@@ -11,7 +10,6 @@ interface BoardMembersProps {
 
 export default function BoardMembers({ boardId, isOwner }: BoardMembersProps) {
   const { data: members = [], isLoading } = useBoardMembers(boardId)
-  const { data: allUsers = [] } = useUsers()
   const addMemberMutation = useAddBoardMember()
   const removeMemberMutation = useRemoveBoardMember()
   const [showInvite, setShowInvite] = useState(false)
@@ -46,9 +44,7 @@ export default function BoardMembers({ boardId, isOwner }: BoardMembersProps) {
     }
   }
 
-  // Get member IDs to exclude from user selector
-  const memberUserIds = members.map((m) => m.user_id)
-  const availableUsers = allUsers.filter((u) => !memberUserIds.includes(u.user_id))
+  // Note: UserSelector handles filtering of already-added members internally
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
