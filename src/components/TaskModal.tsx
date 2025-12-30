@@ -109,13 +109,35 @@ export default function TaskModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-6">
-        <h2 className="text-2xl font-bold mb-6 text-gray-900">
-          {task ? 'Edit Task' : 'Create Task'}
-        </h2>
+    <div className="fixed inset-0 z-50">
+      {/* Overlay */}
+      <div
+        className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
+        onClick={onClose}
+      />
 
-        <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto">
+      {/* Sidebar */}
+      <div className="absolute right-0 top-0 bottom-0 w-full max-w-2xl bg-white shadow-2xl flex flex-col animate-slide-in-right">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h2 className="text-2xl font-bold text-gray-900">
+            {task ? 'Edit Task' : 'Create Task'}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
             <input
@@ -241,9 +263,11 @@ export default function TaskModal({
             )}
           </div>
 
+          </form>
+
           {/* Tabs for Checklist, Comments, Activity - only show when editing existing task */}
           {task && (
-            <div>
+            <div className="border-t border-gray-200 pt-4">
               {/* Tab Headers */}
               <div className="flex gap-4 border-b border-gray-200 mb-4">
                 <button
@@ -289,39 +313,44 @@ export default function TaskModal({
               </div>
             </div>
           )}
+          </div>
 
-          <div className="flex gap-3 justify-end pt-6 border-t border-gray-200">
-            {task && (
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <div className="flex gap-3 justify-end">
+              {task && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (confirm('Delete this task?')) {
+                      await onDelete()
+                    }
+                  }}
+                  disabled={loading}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              )}
               <button
                 type="button"
-                onClick={async () => {
-                  if (confirm('Delete this task?')) {
-                    await onDelete()
-                  }
-                }}
+                onClick={onClose}
                 disabled={loading}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition disabled:opacity-50"
+                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-900 rounded-lg transition disabled:opacity-50"
               >
-                Delete
+                Cancel
               </button>
-            )}
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-900 rounded-lg transition disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !title.trim()}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition disabled:opacity-50"
-            >
-              {loading ? 'Saving...' : task ? 'Update' : 'Create'}
-            </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading || !title.trim()}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition disabled:opacity-50"
+              >
+                {loading ? 'Saving...' : task ? 'Update' : 'Create'}
+              </button>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   )
