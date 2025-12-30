@@ -94,8 +94,7 @@ CREATE TABLE IF NOT EXISTS board_statuses (
 
   -- Constraints
   UNIQUE(board_id, name),
-  UNIQUE(board_id, order_index),
-  CHECK (color ~ '^#[0-9A-Fa-f]{6}$')
+  UNIQUE(board_id, order_index)
 );
 
 CREATE INDEX IF NOT EXISTS idx_board_statuses_board_id ON board_statuses(board_id);
