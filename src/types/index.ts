@@ -62,12 +62,22 @@ export interface UserWithProfile extends User {
   profile?: UserProfile
 }
 
+export type SubtaskStatus = 'todo' | 'in_progress' | 'done'
+
 export interface TaskChecklistItem {
   id: string
   task_id: string
   title: string
   is_completed: boolean
+  status: SubtaskStatus
   order_index: number
+  // Properties (same as Task)
+  priority: TaskPriority | null
+  assigned_to: string | null
+  due_date: string | null
+  labels: string[] | null
+  estimated_time: number | null // in minutes
+  actual_time: number | null // in minutes
   created_at: string
   updated_at: string
 }

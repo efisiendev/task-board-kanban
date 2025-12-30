@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { TaskChecklistItem } from '../types'
+import { TaskChecklistItem, SubtaskStatus } from '../types'
 
 export function useTaskChecklist(taskId: string) {
   const queryClient = useQueryClient()
@@ -13,11 +13,12 @@ export function useTaskChecklist(taskId: string) {
         .from('task_checklist')
         .select('*')
         .eq('task_id', taskId)
-        .order('order_index', { ascending: true })
+        .order('status, order_index', { ascending: true })
 
       if (error) throw error
       return data as TaskChecklistItem[]
     },
+    refetchInterval: 2000, // Auto-refresh every 2s (temporary for debug)
   })
 
   // Real-time subscription for checklist items
@@ -60,10 +61,18 @@ export function useCreateChecklistItem() {
       taskId,
       title,
       orderIndex,
+      status = 'todo',
+      priority,
+      dueDate,
+      estimatedTime,
     }: {
       taskId: string
       title: string
       orderIndex: number
+      status?: SubtaskStatus
+      priority?: TaskChecklistItem['priority']
+      dueDate?: string | null
+      estimatedTime?: number | null
     }) => {
       const { data, error } = await supabase
         .from('task_checklist')
@@ -71,7 +80,11 @@ export function useCreateChecklistItem() {
           task_id: taskId,
           title,
           order_index: orderIndex,
+          status,
           is_completed: false,
+          priority: priority || null,
+          due_date: dueDate || null,
+          estimated_time: estimatedTime || null,
         })
         .select()
         .single()
@@ -94,18 +107,39 @@ export function useUpdateChecklistItem() {
       taskId,
       title,
       isCompleted,
+      status,
       orderIndex,
+      priority,
+      assigned_to,
+      due_date,
+      labels,
+      estimated_time,
+      actual_time,
     }: {
       id: string
       taskId: string
       title?: string
       isCompleted?: boolean
+      status?: SubtaskStatus
       orderIndex?: number
+      priority?: TaskChecklistItem['priority']
+      assigned_to?: string | null
+      due_date?: string | null
+      labels?: string[] | null
+      estimated_time?: number | null
+      actual_time?: number | null
     }) => {
       const updates: Record<string, unknown> = {}
       if (title !== undefined) updates.title = title
       if (isCompleted !== undefined) updates.is_completed = isCompleted
+      if (status !== undefined) updates.status = status
       if (orderIndex !== undefined) updates.order_index = orderIndex
+      if (priority !== undefined) updates.priority = priority
+      if (assigned_to !== undefined) updates.assigned_to = assigned_to
+      if (due_date !== undefined) updates.due_date = due_date
+      if (labels !== undefined) updates.labels = labels
+      if (estimated_time !== undefined) updates.estimated_time = estimated_time
+      if (actual_time !== undefined) updates.actual_time = actual_time
 
       const { data, error } = await supabase
         .from('task_checklist')
@@ -146,15 +180,16 @@ export function useReorderChecklistItems() {
       items,
     }: {
       taskId: string
-      items: { id: string; order_index: number }[]
+      items: { id: string; order_index: number; status?: SubtaskStatus }[]
     }) => {
       // Update all items in a transaction-like manner
-      const promises = items.map((item) =>
-        supabase
-          .from('task_checklist')
-          .update({ order_index: item.order_index })
-          .eq('id', item.id)
-      )
+      const promises = items.map((item) => {
+        const updates: Record<string, unknown> = { order_index: item.order_index }
+        if (item.status !== undefined) {
+          updates.status = item.status
+        }
+        return supabase.from('task_checklist').update(updates).eq('id', item.id)
+      })
 
       const results = await Promise.all(promises)
       const error = results.find((r) => r.error)?.error

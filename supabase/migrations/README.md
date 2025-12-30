@@ -16,6 +16,7 @@ Run these migrations in order for fresh database setup:
 6. **012_enable_realtime.sql** - Enable Realtime for all tables (live updates)
 7. **013_add_task_checklist.sql** - Task checklist/subtasks feature (Phase 1.1)
 8. **014_add_task_comments_and_activity.sql** - Comments & activity log with auto-logging (Phase 1.3)
+9. **015_add_subtask_status.sql** - Upgrade checklist to Kanban-style subtasks (Phase 1.4)
 
 ## Archive
 
