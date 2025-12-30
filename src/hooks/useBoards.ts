@@ -81,18 +81,11 @@ export function useCreateBoard() {
       const { data: { user }, error: authError } = await supabase.auth.getUser()
       if (authError || !user) throw new Error('Not authenticated')
 
-      console.log('🔍 Debug - User ID:', user.id)
-      console.log('🔍 Debug - User Email:', user.email)
-      console.log('🔍 Debug - Inserting:', { name, user_id: user.id })
-
       const { data, error } = await supabase
         .from('boards')
         .insert({ name, user_id: user.id })
         .select()
         .single()
-
-      console.log('🔍 Debug - Insert Result:', data)
-      console.log('🔍 Debug - Insert Error:', error)
 
       if (error) throw error
       return data as Board
