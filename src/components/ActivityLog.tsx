@@ -1,12 +1,12 @@
 import { useTaskActivity } from '../hooks/useTaskComments'
-import { TaskActivity } from '../types'
+import { TaskActivityWithProfile } from '../types'
 
 interface ActivityLogProps {
   taskId: string
 }
 
 interface ActivityItemProps {
-  activity: any // Will include user_profiles join
+  activity: TaskActivityWithProfile
 }
 
 function ActivityItem({ activity }: ActivityItemProps) {
@@ -30,7 +30,7 @@ function ActivityItem({ activity }: ActivityItemProps) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
-  const getActivityText = (action: string, details: any) => {
+  const getActivityText = (action: string, details: Record<string, unknown> | null) => {
     switch (action) {
       case 'created':
         return 'created this task'
@@ -38,15 +38,17 @@ function ActivityItem({ activity }: ActivityItemProps) {
         return 'added a comment'
       case 'assigned':
         return details?.assigned_to ? 'assigned this task' : 'unassigned this task'
-      case 'updated':
+      case 'updated': {
         const changes = []
-        if (details?.title) changes.push(`changed title`)
-        if (details?.status) changes.push(`changed status to ${details.status.to}`)
-        if (details?.priority) changes.push(`changed priority to ${details.priority.to}`)
-        if (details?.due_date) changes.push(`updated due date`)
+        const detailsObj = details as Record<string, { from?: string; to?: string }> | null
+        if (detailsObj?.title) changes.push(`changed title`)
+        if (detailsObj?.status) changes.push(`changed status to ${detailsObj.status.to}`)
+        if (detailsObj?.priority) changes.push(`changed priority to ${detailsObj.priority.to}`)
+        if (detailsObj?.due_date) changes.push(`updated due date`)
         return changes.length > 0 ? changes.join(', ') : 'updated this task'
+      }
       case 'moved':
-        return details?.status ? `moved to ${details.status}` : 'moved this task'
+        return (details as { status?: string })?.status ? `moved to ${(details as { status: string }).status}` : 'moved this task'
       case 'completed':
         return 'completed this task'
       case 'reopened':
@@ -95,29 +97,30 @@ function ActivityItem({ activity }: ActivityItemProps) {
         </div>
 
         {/* Show details if available */}
-        {activity.details && Object.keys(activity.details).length > 0 && (
-          <div className="mt-1 text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
-            {activity.action === 'updated' && (
+        {activity.details && Object.keys(activity.details).length > 0 && activity.action === 'updated' && (() => {
+          const details = activity.details as Record<string, { from?: string; to?: string }>
+          return (
+            <div className="mt-1 text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
               <div className="space-y-0.5">
-                {activity.details.title && (
+                {details.title && (
                   <div>
-                    <span className="font-medium">Title:</span> {activity.details.title.from} → {activity.details.title.to}
+                    <span className="font-medium">Title:</span> {String(details.title.from)} → {String(details.title.to)}
                   </div>
                 )}
-                {activity.details.status && (
+                {details.status && (
                   <div>
-                    <span className="font-medium">Status:</span> {activity.details.status.from} → {activity.details.status.to}
+                    <span className="font-medium">Status:</span> {String(details.status.from)} → {String(details.status.to)}
                   </div>
                 )}
-                {activity.details.priority && (
+                {details.priority && (
                   <div>
-                    <span className="font-medium">Priority:</span> {activity.details.priority.from || 'none'} → {activity.details.priority.to}
+                    <span className="font-medium">Priority:</span> {details.priority.from || 'none'} → {String(details.priority.to)}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

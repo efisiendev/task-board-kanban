@@ -146,3 +146,16 @@ export interface TaskRelation {
   from_task?: Task
   to_task?: Task
 }
+
+// Extended types with joined data
+export interface TaskCommentWithProfile extends TaskComment {
+  user_profiles?: UserProfile | null
+}
+
+export interface TaskActivityWithProfile extends TaskActivity {
+  user_profiles?: UserProfile | null
+}
+
+export interface BoardMemberWithProfile extends BoardMember {
+  user_profiles?: UserProfile | null
+}

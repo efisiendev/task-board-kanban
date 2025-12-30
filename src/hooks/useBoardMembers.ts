@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { BoardMember, BoardMemberRole } from '../types'
+import { BoardMember, BoardMemberRole, BoardMemberWithProfile } from '../types'
 
 export function useBoardMembers(boardId: string) {
   const queryClient = useQueryClient()
@@ -19,14 +19,12 @@ export function useBoardMembers(boardId: string) {
         .order('joined_at', { ascending: true })
 
       if (error) throw error
-      return data as BoardMember[]
+      return data as BoardMemberWithProfile[]
     },
   })
 
   // Real-time subscription for board members
   useEffect(() => {
-    console.log('🔔 Setting up board members Realtime subscription for:', boardId)
-
     const channel = supabase
       .channel(`board-members:${boardId}`)
       .on(
@@ -37,17 +35,13 @@ export function useBoardMembers(boardId: string) {
           table: 'board_members',
           filter: `board_id=eq.${boardId}`,
         },
-        (payload) => {
-          console.log('✅ Board members Realtime event:', payload)
+        () => {
           queryClient.invalidateQueries({ queryKey: ['board-members', boardId] })
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Board members subscription status:', status)
-      })
+      .subscribe()
 
     return () => {
-      console.log('🔕 Unsubscribing from board members:', boardId)
       channel.unsubscribe()
     }
   }, [boardId, queryClient])
@@ -94,7 +88,7 @@ export function useRemoveBoardMember() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ boardId, memberId }: { boardId: string; memberId: string }) => {
+    mutationFn: async ({ memberId }: { boardId: string; memberId: string }) => {
       const { error } = await supabase
         .from('board_members')
         .delete()
@@ -113,7 +107,6 @@ export function useUpdateMemberRole() {
 
   return useMutation({
     mutationFn: async ({
-      boardId,
       memberId,
       role,
     }: {

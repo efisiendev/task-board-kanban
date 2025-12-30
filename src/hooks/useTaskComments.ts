@@ -26,7 +26,6 @@ export function useTaskComments(taskId: string) {
 
   // Real-time subscription
   useEffect(() => {
-    console.log('🔔 Setting up comments Realtime subscription for task:', taskId)
 
     const channel = supabase
       .channel(`task-comments:${taskId}`)
@@ -39,16 +38,13 @@ export function useTaskComments(taskId: string) {
           filter: `task_id=eq.${taskId}`,
         },
         (payload) => {
-          console.log('✅ Comments Realtime event:', payload)
           queryClient.invalidateQueries({ queryKey: ['task-comments', taskId] })
         }
       )
       .subscribe((status) => {
-        console.log('📡 Comments subscription status:', status)
       })
 
     return () => {
-      console.log('🔕 Unsubscribing from task comments:', taskId)
       channel.unsubscribe()
     }
   }, [taskId, queryClient])
@@ -143,7 +139,6 @@ export function useTaskActivity(taskId: string) {
 
   // Real-time subscription
   useEffect(() => {
-    console.log('🔔 Setting up activity Realtime subscription for task:', taskId)
 
     const channel = supabase
       .channel(`task-activity:${taskId}`)
@@ -156,16 +151,13 @@ export function useTaskActivity(taskId: string) {
           filter: `task_id=eq.${taskId}`,
         },
         (payload) => {
-          console.log('✅ Activity Realtime event:', payload)
           queryClient.invalidateQueries({ queryKey: ['task-activity', taskId] })
         }
       )
       .subscribe((status) => {
-        console.log('📡 Activity subscription status:', status)
       })
 
     return () => {
-      console.log('🔕 Unsubscribing from task activity:', taskId)
       channel.unsubscribe()
     }
   }, [taskId, queryClient])

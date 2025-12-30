@@ -28,8 +28,6 @@ export function useBoards() {
 
   // Real-time subscription for boards
   useEffect(() => {
-    console.log('🔔 Setting up boards Realtime subscription')
-
     const channel = supabase
       .channel('boards-changes')
       .on(
@@ -39,25 +37,19 @@ export function useBoards() {
           schema: 'public',
           table: 'boards',
         },
-        (payload) => {
-          console.log('✅ Boards Realtime event:', payload)
+        () => {
           queryClient.invalidateQueries({ queryKey: ['boards'] })
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Boards subscription status:', status)
-      })
+      .subscribe()
 
     return () => {
-      console.log('🔕 Unsubscribing from boards')
       channel.unsubscribe()
     }
   }, [queryClient])
 
   // Real-time subscription for board_members (affects which boards user can see)
   useEffect(() => {
-    console.log('🔔 Setting up board_members-changes Realtime subscription')
-
     const channel = supabase
       .channel('board-members-changes')
       .on(
@@ -67,17 +59,13 @@ export function useBoards() {
           schema: 'public',
           table: 'board_members',
         },
-        (payload) => {
-          console.log('✅ Board members changes Realtime event:', payload)
+        () => {
           queryClient.invalidateQueries({ queryKey: ['boards'] })
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Board members changes subscription status:', status)
-      })
+      .subscribe()
 
     return () => {
-      console.log('🔕 Unsubscribing from board_members-changes')
       channel.unsubscribe()
     }
   }, [queryClient])

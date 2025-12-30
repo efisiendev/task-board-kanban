@@ -26,7 +26,6 @@ async function ensureUserIsBoardMember(boardId: string, userId: string) {
       invited_by: user?.id || null,
     })
 
-    console.log(`✅ Auto-added user ${userId} to board ${boardId} as member`)
   }
 }
 
@@ -53,7 +52,6 @@ export function useTasks(boardId: string) {
 
   // Subscribe to real-time updates
   useEffect(() => {
-    console.log('🔔 Setting up Realtime subscription for board:', boardId)
 
     const channel = supabase
       .channel(`board:${boardId}`)
@@ -66,16 +64,13 @@ export function useTasks(boardId: string) {
           filter: `board_id=eq.${boardId}`,
         },
         (payload) => {
-          console.log('✅ Realtime event received:', payload)
           queryClient.invalidateQueries({ queryKey: ['tasks', boardId] })
         }
       )
       .subscribe((status) => {
-        console.log('📡 Subscription status:', status)
       })
 
     return () => {
-      console.log('🔕 Unsubscribing from board:', boardId)
       channel.unsubscribe()
     }
   }, [boardId, queryClient])

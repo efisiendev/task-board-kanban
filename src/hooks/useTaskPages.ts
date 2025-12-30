@@ -22,7 +22,6 @@ export function useTaskPages(taskId: string) {
 
   // Real-time subscription for pages
   useEffect(() => {
-    console.log('🔔 Setting up task pages Realtime subscription for task:', taskId)
 
     const channel = supabase
       .channel(`task-pages:${taskId}`)
@@ -35,16 +34,13 @@ export function useTaskPages(taskId: string) {
           filter: `task_id=eq.${taskId}`,
         },
         (payload) => {
-          console.log('✅ Task pages Realtime event:', payload)
           queryClient.invalidateQueries({ queryKey: ['task-pages', taskId] })
         }
       )
       .subscribe((status) => {
-        console.log('📡 Task pages subscription status:', status)
       })
 
     return () => {
-      console.log('🔕 Unsubscribing from task pages:', taskId)
       channel.unsubscribe()
     }
   }, [taskId, queryClient])

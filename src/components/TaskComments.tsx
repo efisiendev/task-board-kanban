@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { useTaskComments, useCreateComment, useDeleteComment, useUpdateComment } from '../hooks/useTaskComments'
-import { useUserProfile } from '../hooks/useUsers'
 import { supabase } from '../lib/supabase'
+import { TaskCommentWithProfile } from '../types'
 
 interface TaskCommentsProps {
   taskId: string
 }
 
 interface CommentItemProps {
-  comment: any // Will include user_profiles join
+  comment: TaskCommentWithProfile
   isOwn: boolean
   onDelete: (id: string) => void
   onUpdate: (id: string, text: string) => void

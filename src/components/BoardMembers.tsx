@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useBoardMembers, useAddBoardMember, useRemoveBoardMember } from '../hooks/useBoardMembers'
 import { useUsers } from '../hooks/useUsers'
 import UserSelector from './UserSelector'
+import { BoardMemberRole } from '../types'
 
 interface BoardMembersProps {
   boardId: string
@@ -15,7 +16,7 @@ export default function BoardMembers({ boardId, isOwner }: BoardMembersProps) {
   const removeMemberMutation = useRemoveBoardMember()
   const [showInvite, setShowInvite] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string>('')
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'member' | 'viewer'>('member')
+  const [selectedRole, setSelectedRole] = useState<BoardMemberRole>('member')
 
   const handleAddMember = async () => {
     if (!selectedUserId) return
@@ -28,8 +29,9 @@ export default function BoardMembers({ boardId, isOwner }: BoardMembersProps) {
       })
       setSelectedUserId('')
       setShowInvite(false)
-    } catch (error: any) {
-      alert(error.message || 'Failed to add member')
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add member'
+      alert(errorMessage)
     }
   }
 
@@ -38,13 +40,14 @@ export default function BoardMembers({ boardId, isOwner }: BoardMembersProps) {
 
     try {
       await removeMemberMutation.mutateAsync({ boardId, memberId })
-    } catch (error: any) {
-      alert(error.message || 'Failed to remove member')
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to remove member'
+      alert(errorMessage)
     }
   }
 
   // Get member IDs to exclude from user selector
-  const memberUserIds = members.map((m: any) => m.user_id)
+  const memberUserIds = members.map((m) => m.user_id)
   const availableUsers = allUsers.filter((u) => !memberUserIds.includes(u.user_id))
 
   return (
@@ -77,7 +80,7 @@ export default function BoardMembers({ boardId, isOwner }: BoardMembersProps) {
               <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
               <select
                 value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value as any)}
+                onChange={(e) => setSelectedRole(e.target.value as BoardMemberRole)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               >
                 <option value="admin">Admin - Full access</option>
@@ -111,7 +114,7 @@ export default function BoardMembers({ boardId, isOwner }: BoardMembersProps) {
         ) : members.length === 0 ? (
           <div className="text-center text-gray-500 py-4">No members yet</div>
         ) : (
-          members.map((member: any) => (
+          members.map((member) => (
             <div
               key={member.id}
               className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"

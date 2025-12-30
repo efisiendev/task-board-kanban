@@ -23,7 +23,6 @@ export function useTaskChecklist(taskId: string) {
 
   // Real-time subscription for checklist items (now from tasks table)
   useEffect(() => {
-    console.log('🔔 Setting up subtask Realtime subscription for task:', taskId)
 
     const channel = supabase
       .channel(`task-subtasks:${taskId}`)
@@ -35,17 +34,13 @@ export function useTaskChecklist(taskId: string) {
           table: 'tasks',
           filter: `parent_task_id=eq.${taskId}`,
         },
-        (payload) => {
-          console.log('✅ Subtask Realtime event:', payload)
+        () => {
           queryClient.invalidateQueries({ queryKey: ['task-checklist', taskId] })
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Subtask subscription status:', status)
-      })
+      .subscribe()
 
     return () => {
-      console.log('🔕 Unsubscribing from task subtasks:', taskId)
       channel.unsubscribe()
     }
   }, [taskId, queryClient])

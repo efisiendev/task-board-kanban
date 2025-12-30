@@ -40,7 +40,6 @@ export function useTaskRelations(taskId: string) {
 
   // Real-time subscription
   useEffect(() => {
-    console.log('🔔 Setting up task relations Realtime subscription for task:', taskId)
 
     const channel = supabase
       .channel(`task-relations:${taskId}`)
@@ -53,7 +52,6 @@ export function useTaskRelations(taskId: string) {
           filter: `from_task_id=eq.${taskId}`,
         },
         (payload) => {
-          console.log('✅ Task relations Realtime event (outgoing):', payload)
           queryClient.invalidateQueries({ queryKey: ['task-relations', taskId] })
         }
       )
@@ -66,16 +64,13 @@ export function useTaskRelations(taskId: string) {
           filter: `to_task_id=eq.${taskId}`,
         },
         (payload) => {
-          console.log('✅ Task relations Realtime event (incoming):', payload)
           queryClient.invalidateQueries({ queryKey: ['task-relations', taskId] })
         }
       )
       .subscribe((status) => {
-        console.log('📡 Task relations subscription status:', status)
       })
 
     return () => {
-      console.log('🔕 Unsubscribing from task relations:', taskId)
       channel.unsubscribe()
     }
   }, [taskId, queryClient])
