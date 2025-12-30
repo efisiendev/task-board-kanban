@@ -10,7 +10,7 @@ export interface TaskFormData {
   start_date: string | null
   labels: string[] | null
   estimated_time: number | null
-  actual_time?: number | null
+  actual_time: number | null
 }
 
 interface UseTaskFormStateOptions {

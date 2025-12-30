@@ -1,180 +1,82 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { TaskChecklistItem, TaskPriority } from '../types'
+import { useState } from 'react'
+import { TaskChecklistItem } from '../types'
 import { supabase } from '../lib/supabase'
 import UserSelector from './UserSelector'
+import { useTaskFormState } from '../hooks/useTaskFormState'
+import { useAutoSave } from '../hooks/useAutoSave'
+import { PropertyRow, PriorityField, DateField, TimeField } from './shared'
+
+import { TaskFormData } from '../hooks/useTaskFormState'
 
 interface SubtaskModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: {
-    title: string
-    description: string
-    priority: TaskPriority | null
-    assigned_to: string | null
-    due_date: string | null
-    start_date: string | null
-    labels: string[] | null
-    estimated_time: number | null
-    actual_time: number | null
-  }) => void
+  onSave: (data: TaskFormData) => void
   subtask?: TaskChecklistItem | null
   mode: 'create' | 'edit'
 }
 
 export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: SubtaskModalProps) {
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [priority, setPriority] = useState<TaskPriority | null>(null)
-  const [assignedTo, setAssignedTo] = useState('')
-  const [dueDate, setDueDate] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [labelInput, setLabelInput] = useState('')
-  const [labels, setLabels] = useState<string[]>([])
-  const [estimatedTime, setEstimatedTime] = useState('')
-  const [actualTime, setActualTime] = useState('')
+  // Use shared form state hook
+  const {
+    title,
+    setTitle,
+    description,
+    setDescription,
+    priority,
+    setPriority,
+    assignedTo,
+    setAssignedTo,
+    dueDate,
+    setDueDate,
+    startDate,
+    setStartDate,
+    labels,
+    labelInput,
+    setLabelInput,
+    handleAddLabel,
+    handleRemoveLabel,
+    estimatedTime,
+    setEstimatedTime,
+    actualTime,
+    setActualTime,
+    getFormData,
+  } = useTaskFormState({
+    initialData: subtask && mode === 'edit' ? subtask : undefined,
+    id: subtask?.id,
+  })
+
   const [editingProperty, setEditingProperty] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const initialSubtaskIdRef = useRef<string | null>(null)
-  const latestValuesRef = useRef({ title, description, priority, assignedTo, dueDate, startDate, labels, estimatedTime, actualTime })
-  const lastEditTimeRef = useRef<number>(0)
-
-  // Update ref with latest values on every render
-  latestValuesRef.current = { title, description, priority, assignedTo, dueDate, startDate, labels, estimatedTime, actualTime }
-
-  // Sync local state with subtask prop
-  useEffect(() => {
-    if (!isOpen) {
-      initialSubtaskIdRef.current = null
-      return
-    }
-
-    const subtaskId = subtask?.id || null
-    const isNewSubtask = subtaskId !== initialSubtaskIdRef.current
-    const timeSinceLastEdit = Date.now() - lastEditTimeRef.current
-    const isActivelyEditing = timeSinceLastEdit < 2000
-
-    if (isNewSubtask || !isActivelyEditing) {
-      if (isNewSubtask) {
-        initialSubtaskIdRef.current = subtaskId
-      }
-
-      if (subtask && mode === 'edit') {
-        setTitle(subtask.title)
-        setDescription('')
-        setPriority(subtask.priority)
-        setAssignedTo(subtask.assigned_to || '')
-        setDueDate(subtask.due_date || '')
-        setStartDate('')
-        setLabels(subtask.labels || [])
-        setEstimatedTime(subtask.estimated_time?.toString() || '')
-        setActualTime(subtask.actual_time?.toString() || '')
-      } else if (isNewSubtask && mode === 'create') {
-        setTitle('')
-        setDescription('')
-        setPriority(null)
-        setAssignedTo('')
-        setDueDate('')
-        setStartDate('')
-        setLabelInput('')
-        setLabels([])
-        setEstimatedTime('')
-        setActualTime('')
-      }
-    }
-  }, [subtask, mode, isOpen])
 
   // Auto-save function for edit mode
-  const autoSave = useCallback(async () => {
-    if (!subtask || mode !== 'edit') return
+  const handleAutoSave = async (data: typeof getFormData extends () => infer R ? R : never) => {
+    if (!subtask || mode !== 'edit' || !data.title.trim()) return
 
-    const values = latestValuesRef.current
-    if (!values.title.trim()) return
+    await supabase
+      .from('task_checklist')
+      .update({
+        title: data.title,
+        priority: data.priority,
+        assigned_to: data.assigned_to,
+        due_date: data.due_date,
+        labels: data.labels,
+        estimated_time: data.estimated_time,
+        actual_time: data.actual_time,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', subtask.id)
+  }
 
-    setIsSaving(true)
-    try {
-      const { error } = await supabase
-        .from('task_checklist')
-        .update({
-          title: values.title,
-          priority: values.priority,
-          assigned_to: values.assignedTo || null,
-          due_date: values.dueDate || null,
-          labels: values.labels.length > 0 ? values.labels : null,
-          estimated_time: values.estimatedTime ? parseInt(values.estimatedTime) : null,
-          actual_time: values.actualTime ? parseInt(values.actualTime) : null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', subtask.id)
-
-      if (error) throw error
-    } catch (error) {
-      console.error('Auto-save error:', error)
-    } finally {
-      setIsSaving(false)
-    }
-  }, [subtask, mode])
-
-  // Debounced auto-save
-  const debouncedAutoSave = useCallback(() => {
-    if (!subtask || mode !== 'edit') return
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-    }
-    saveTimeoutRef.current = setTimeout(() => {
-      autoSave()
-    }, 500)
-  }, [subtask, mode, autoSave])
-
-  // Immediate auto-save
-  const immediateAutoSave = useCallback(() => {
-    if (subtask && mode === 'edit') {
-      autoSave()
-    }
-  }, [subtask, mode, autoSave])
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-      }
-    }
-  }, [])
+  // Use shared auto-save hook
+  const { isSaving, debouncedAutoSave, immediateAutoSave, lastEditTimeRef } = useAutoSave({
+    onSave: handleAutoSave,
+    delay: 500,
+  })
 
   const handleSave = () => {
     if (!title.trim()) return
-
-    onSave({
-      title: title.trim(),
-      description: description.trim(),
-      priority,
-      assigned_to: assignedTo || null,
-      due_date: dueDate || null,
-      start_date: startDate || null,
-      labels: labels.length > 0 ? labels : null,
-      estimated_time: estimatedTime ? parseInt(estimatedTime) : null,
-      actual_time: actualTime ? parseInt(actualTime) : null,
-    })
-
+    onSave(getFormData())
     onClose()
-  }
-
-  const handleAddLabel = () => {
-    if (labelInput.trim() && !labels.includes(labelInput.trim())) {
-      setLabels([...labels, labelInput.trim()])
-      setLabelInput('')
-      if (subtask && mode === 'edit') {
-        setTimeout(() => immediateAutoSave(), 100)
-      }
-    }
-  }
-
-  const handleRemoveLabel = (label: string) => {
-    setLabels(labels.filter((l) => l !== label))
-    if (subtask && mode === 'edit') {
-      setTimeout(() => immediateAutoSave(), 100)
-    }
   }
 
   if (!isOpen) return null
@@ -211,7 +113,7 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
               onChange={(e) => {
                 setTitle(e.target.value)
                 lastEditTimeRef.current = Date.now()
-                if (subtask && mode === 'edit') debouncedAutoSave()
+                if (subtask && mode === 'edit') debouncedAutoSave(getFormData())
               }}
               className="w-full text-3xl font-bold border-none outline-none focus:ring-0 p-0"
               placeholder="Untitled"
@@ -229,7 +131,7 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
             onChange={(e) => {
               setDescription(e.target.value)
               lastEditTimeRef.current = Date.now()
-              if (subtask && mode === 'edit') debouncedAutoSave()
+              if (subtask && mode === 'edit') debouncedAutoSave(getFormData())
             }}
             className="w-full text-sm text-gray-700 border-none outline-none focus:ring-0 p-0 resize-none min-h-20"
             placeholder="Add description..."
@@ -240,221 +142,116 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
           <div className="border-t border-gray-200 pt-4">
             <div className="space-y-1">
               {/* Priority */}
-              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
-                <div className="w-32 text-sm text-gray-600">Priority</div>
-                <div className="flex-1">
-                  {editingProperty === 'priority' ? (
-                    <select
-                      value={priority || ''}
-                      onChange={(e) => {
-                        setPriority((e.target.value as TaskPriority) || null)
-                        lastEditTimeRef.current = Date.now()
-                        setEditingProperty(null)
-                        immediateAutoSave()
-                      }}
-                      onBlur={() => setEditingProperty(null)}
-                      autoFocus
-                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
-                    >
-                      <option value="">None</option>
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
-                    </select>
-                  ) : (
-                    <div
-                      onClick={() => setEditingProperty('priority')}
-                      className="text-sm cursor-pointer px-2 py-1"
-                    >
-                      {priority ? (
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                          priority === 'urgent' ? 'bg-red-100 text-red-800' :
-                          priority === 'high' ? 'bg-orange-100 text-orange-800' :
-                          priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">Empty</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <PropertyRow label="Priority">
+                <PriorityField
+                  value={priority}
+                  isEditing={editingProperty === 'priority'}
+                  onEdit={() => setEditingProperty('priority')}
+                  onChange={(value) => {
+                    setPriority(value)
+                    lastEditTimeRef.current = Date.now()
+                    setEditingProperty(null)
+                    if (subtask && mode === 'edit') immediateAutoSave(getFormData())
+                  }}
+                  onBlur={() => setEditingProperty(null)}
+                />
+              </PropertyRow>
 
               {/* Assigned */}
-              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
-                <div className="w-32 text-sm text-gray-600">Assigned</div>
-                <div className="flex-1">
-                  {editingProperty === 'assigned' ? (
-                    <div onBlur={() => setEditingProperty(null)}>
-                      <UserSelector
-                        value={assignedTo || null}
-                        onChange={(userId) => {
-                          setAssignedTo(userId)
-                          lastEditTimeRef.current = Date.now()
-                          setEditingProperty(null)
-                          immediateAutoSave()
-                        }}
-                        placeholder="Select user..."
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => setEditingProperty('assigned')}
-                      className="text-sm cursor-pointer px-2 py-1"
-                    >
-                      {assignedTo ? (
-                        <span className="text-gray-900">{assignedTo}</span>
-                      ) : (
-                        <span className="text-gray-400">Empty</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <PropertyRow label="Assigned">
+                {editingProperty === 'assigned' ? (
+                  <div onBlur={() => setEditingProperty(null)}>
+                    <UserSelector
+                      value={assignedTo || null}
+                      onChange={(userId) => {
+                        setAssignedTo(userId)
+                        lastEditTimeRef.current = Date.now()
+                        setEditingProperty(null)
+                        if (subtask && mode === 'edit') immediateAutoSave(getFormData())
+                      }}
+                      placeholder="Select user..."
+                    />
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => setEditingProperty('assigned')}
+                    className="text-sm cursor-pointer px-2 py-1"
+                  >
+                    {assignedTo ? (
+                      <span className="text-gray-900">{assignedTo}</span>
+                    ) : (
+                      <span className="text-gray-400">Empty</span>
+                    )}
+                  </div>
+                )}
+              </PropertyRow>
 
               {/* Start Date */}
-              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
-                <div className="w-32 text-sm text-gray-600">Start Date</div>
-                <div className="flex-1">
-                  {editingProperty === 'start_date' ? (
-                    <input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => {
-                        setStartDate(e.target.value)
-                        lastEditTimeRef.current = Date.now()
-                        immediateAutoSave()
-                      }}
-                      onBlur={() => setEditingProperty(null)}
-                      autoFocus
-                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
-                    />
-                  ) : (
-                    <div
-                      onClick={() => setEditingProperty('start_date')}
-                      className="text-sm cursor-pointer px-2 py-1"
-                    >
-                      {startDate ? (
-                        <span className="text-gray-900">{new Date(startDate).toLocaleDateString()}</span>
-                      ) : (
-                        <span className="text-gray-400">Empty</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <PropertyRow label="Start Date">
+                <DateField
+                  value={startDate}
+                  isEditing={editingProperty === 'start_date'}
+                  onEdit={() => setEditingProperty('start_date')}
+                  onChange={(value) => {
+                    setStartDate(value)
+                    lastEditTimeRef.current = Date.now()
+                    if (subtask && mode === 'edit') immediateAutoSave(getFormData())
+                  }}
+                  onBlur={() => setEditingProperty(null)}
+                />
+              </PropertyRow>
 
               {/* Due Date */}
-              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
-                <div className="w-32 text-sm text-gray-600">Due Date</div>
-                <div className="flex-1">
-                  {editingProperty === 'due_date' ? (
-                    <input
-                      type="date"
-                      value={dueDate}
-                      onChange={(e) => {
-                        setDueDate(e.target.value)
-                        lastEditTimeRef.current = Date.now()
-                        immediateAutoSave()
-                      }}
-                      onBlur={() => setEditingProperty(null)}
-                      autoFocus
-                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
-                    />
-                  ) : (
-                    <div
-                      onClick={() => setEditingProperty('due_date')}
-                      className="text-sm cursor-pointer px-2 py-1"
-                    >
-                      {dueDate ? (
-                        <span className="text-gray-900">{new Date(dueDate).toLocaleDateString()}</span>
-                      ) : (
-                        <span className="text-gray-400">Empty</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <PropertyRow label="Due Date">
+                <DateField
+                  value={dueDate}
+                  isEditing={editingProperty === 'due_date'}
+                  onEdit={() => setEditingProperty('due_date')}
+                  onChange={(value) => {
+                    setDueDate(value)
+                    lastEditTimeRef.current = Date.now()
+                    if (subtask && mode === 'edit') immediateAutoSave(getFormData())
+                  }}
+                  onBlur={() => setEditingProperty(null)}
+                />
+              </PropertyRow>
 
               {/* Estimated Time */}
-              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
-                <div className="w-32 text-sm text-gray-600">Est. Time</div>
-                <div className="flex-1">
-                  {editingProperty === 'estimated_time' ? (
-                    <input
-                      type="number"
-                      value={estimatedTime}
-                      onChange={(e) => {
-                        setEstimatedTime(e.target.value)
-                        lastEditTimeRef.current = Date.now()
-                      }}
-                      onBlur={() => {
-                        setEditingProperty(null)
-                        immediateAutoSave()
-                      }}
-                      autoFocus
-                      placeholder="Minutes"
-                      min="0"
-                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
-                    />
-                  ) : (
-                    <div
-                      onClick={() => setEditingProperty('estimated_time')}
-                      className="text-sm cursor-pointer px-2 py-1"
-                    >
-                      {estimatedTime ? (
-                        <span className="text-gray-900">{estimatedTime} min</span>
-                      ) : (
-                        <span className="text-gray-400">Empty</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <PropertyRow label="Est. Time">
+                <TimeField
+                  value={estimatedTime}
+                  isEditing={editingProperty === 'estimated_time'}
+                  onEdit={() => setEditingProperty('estimated_time')}
+                  onChange={(value) => {
+                    setEstimatedTime(value)
+                    lastEditTimeRef.current = Date.now()
+                  }}
+                  onBlur={() => {
+                    setEditingProperty(null)
+                    if (subtask && mode === 'edit') immediateAutoSave(getFormData())
+                  }}
+                />
+              </PropertyRow>
 
               {/* Actual Time */}
-              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
-                <div className="w-32 text-sm text-gray-600">Actual Time</div>
-                <div className="flex-1">
-                  {editingProperty === 'actual_time' ? (
-                    <input
-                      type="number"
-                      value={actualTime}
-                      onChange={(e) => {
-                        setActualTime(e.target.value)
-                        lastEditTimeRef.current = Date.now()
-                      }}
-                      onBlur={() => {
-                        setEditingProperty(null)
-                        immediateAutoSave()
-                      }}
-                      autoFocus
-                      placeholder="Minutes"
-                      min="0"
-                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
-                    />
-                  ) : (
-                    <div
-                      onClick={() => setEditingProperty('actual_time')}
-                      className="text-sm cursor-pointer px-2 py-1"
-                    >
-                      {actualTime ? (
-                        <span className="text-gray-900">{actualTime} min</span>
-                      ) : (
-                        <span className="text-gray-400">Empty</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <PropertyRow label="Actual Time">
+                <TimeField
+                  value={actualTime}
+                  isEditing={editingProperty === 'actual_time'}
+                  onEdit={() => setEditingProperty('actual_time')}
+                  onChange={(value) => {
+                    setActualTime(value)
+                    lastEditTimeRef.current = Date.now()
+                  }}
+                  onBlur={() => {
+                    setEditingProperty(null)
+                    if (subtask && mode === 'edit') immediateAutoSave(getFormData())
+                  }}
+                />
+              </PropertyRow>
 
               {/* Labels */}
-              <div className="flex items-start hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
-                <div className="w-32 text-sm text-gray-600 pt-1">Labels</div>
+              <PropertyRow label="Labels">
                 <div className="flex-1">
                   <div className="flex flex-wrap gap-2 mb-2">
                     {labels.map((label) => (
@@ -464,7 +261,9 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
                       >
                         {label}
                         <button
-                          onClick={() => handleRemoveLabel(label)}
+                          onClick={() => handleRemoveLabel(label, () => {
+                            if (subtask && mode === 'edit') immediateAutoSave(getFormData())
+                          })}
                           className="text-gray-500 hover:text-red-600"
                         >
                           ×
@@ -480,7 +279,9 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault()
-                          handleAddLabel()
+                          handleAddLabel(() => {
+                            if (subtask && mode === 'edit') immediateAutoSave(getFormData())
+                          })
                         }
                       }}
                       placeholder="Add label and press Enter"
@@ -488,7 +289,7 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
                     />
                   </div>
                 </div>
-              </div>
+              </PropertyRow>
             </div>
           </div>
         </div>

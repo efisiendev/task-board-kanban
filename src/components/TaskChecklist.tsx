@@ -7,7 +7,6 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
-  DragOverEvent,
   DragOverlay,
   DragStartEvent,
   UniqueIdentifier,
@@ -299,7 +298,7 @@ export function TaskChecklist({ taskId, boardId }: TaskChecklistProps) {
     setActiveId(event.active.id)
   }
 
-  const handleDragOver = (event: DragOverEvent) => {
+  const handleDragOver = () => {
     // Not needed for our implementation
     return
   }
