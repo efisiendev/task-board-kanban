@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Task, TaskPriority } from '../types'
 import UserSelector from './UserSelector'
+import { TaskChecklist } from './TaskChecklist'
+import { TaskComments } from './TaskComments'
+import { ActivityLog } from './ActivityLog'
 
 interface TaskModalProps {
   task: Task | null
@@ -40,6 +43,7 @@ export default function TaskModal({
   const [labels, setLabels] = useState<string[]>([])
   const [estimatedTime, setEstimatedTime] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<'checklist' | 'comments' | 'activity'>('checklist')
 
   useEffect(() => {
     if (task) {
@@ -236,6 +240,55 @@ export default function TaskModal({
               </div>
             )}
           </div>
+
+          {/* Tabs for Checklist, Comments, Activity - only show when editing existing task */}
+          {task && (
+            <div>
+              {/* Tab Headers */}
+              <div className="flex gap-4 border-b border-gray-200 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('checklist')}
+                  className={`pb-2 px-1 text-sm font-medium border-b-2 transition ${
+                    activeTab === 'checklist'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Checklist
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('comments')}
+                  className={`pb-2 px-1 text-sm font-medium border-b-2 transition ${
+                    activeTab === 'comments'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Comments
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('activity')}
+                  className={`pb-2 px-1 text-sm font-medium border-b-2 transition ${
+                    activeTab === 'activity'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Activity
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <div>
+                {activeTab === 'checklist' && <TaskChecklist taskId={task.id} />}
+                {activeTab === 'comments' && <TaskComments taskId={task.id} />}
+                {activeTab === 'activity' && <ActivityLog taskId={task.id} />}
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-3 justify-end pt-6 border-t border-gray-200">
             {task && (

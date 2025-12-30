@@ -61,3 +61,40 @@ export interface UserProfile {
 export interface UserWithProfile extends User {
   profile?: UserProfile
 }
+
+export interface TaskChecklistItem {
+  id: string
+  task_id: string
+  title: string
+  is_completed: boolean
+  order_index: number
+  created_at: string
+  updated_at: string
+}
+
+export interface TaskComment {
+  id: string
+  task_id: string
+  user_id: string | null
+  comment: string
+  created_at: string
+  updated_at: string
+}
+
+export type TaskActivityAction =
+  | 'created'
+  | 'updated'
+  | 'moved'
+  | 'commented'
+  | 'assigned'
+  | 'completed'
+  | 'reopened'
+
+export interface TaskActivity {
+  id: string
+  task_id: string
+  user_id: string | null
+  action: TaskActivityAction
+  details: Record<string, unknown> | null
+  created_at: string
+}

@@ -1,6 +1,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import { Task } from '../types'
 import { useUserProfile } from '../hooks/useUsers'
+import { useTaskChecklist } from '../hooks/useTaskChecklist'
 
 interface TaskCardProps {
   task: Task
@@ -19,6 +20,7 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
     id: task.id,
   })
   const { data: assigneeProfile } = useUserProfile(task.assigned_to)
+  const { data: checklistItems = [] } = useTaskChecklist(task.id)
 
   const handleClick = (e: React.MouseEvent) => {
     if (!isDragging) {
@@ -40,6 +42,10 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
   }
 
   const isOverdue = task.due_date && new Date(task.due_date) < new Date()
+
+  const checklistCompleted = checklistItems.filter((i) => i.is_completed).length
+  const checklistTotal = checklistItems.length
+  const hasChecklist = checklistTotal > 0
 
   return (
     <div
@@ -98,9 +104,14 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
         </div>
       )}
 
-      {/* Footer with due date and estimated time */}
-      {(task.due_date || task.estimated_time) && (
+      {/* Footer with checklist, due date and estimated time */}
+      {(hasChecklist || task.due_date || task.estimated_time) && (
         <div className="flex items-center gap-3 mt-2 pt-2 border-t border-gray-100 text-xs text-gray-600">
+          {hasChecklist && (
+            <span className={`flex items-center gap-1 ${checklistCompleted === checklistTotal ? 'text-green-600' : ''}`}>
+              ☑️ {checklistCompleted}/{checklistTotal}
+            </span>
+          )}
           {task.due_date && (
             <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-600 font-medium' : ''}`}>
               📅 {formatDate(task.due_date)}

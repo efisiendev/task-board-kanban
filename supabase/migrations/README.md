@@ -14,6 +14,8 @@ Run these migrations in order for fresh database setup:
    - Updated RLS policies
 5. **011_add_board_members_user_profiles_fk.sql** - Fix foreign key relationships for PostgREST joins
 6. **012_enable_realtime.sql** - Enable Realtime for all tables (live updates)
+7. **013_add_task_checklist.sql** - Task checklist/subtasks feature (Phase 1.1)
+8. **014_add_task_comments_and_activity.sql** - Comments & activity log with auto-logging (Phase 1.3)
 
 ## Archive
 
