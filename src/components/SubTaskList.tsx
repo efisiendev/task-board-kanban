@@ -9,13 +9,8 @@ import {
   useSensors,
   closestCorners,
   useDroppable,
+  useDraggable,
 } from '@dnd-kit/core'
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 import { TaskChecklistItem } from '../types'
 import {
   useTaskChecklist,
@@ -37,15 +32,9 @@ interface SortableSubtaskProps {
 }
 
 function SortableSubtask({ item, onDelete, onEdit }: SortableSubtaskProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: item.id,
   })
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
 
   const priorityColors = {
     low: 'bg-blue-100 text-blue-800',
@@ -71,7 +60,6 @@ function SortableSubtask({ item, onDelete, onEdit }: SortableSubtaskProps) {
   return (
     <div
       ref={setNodeRef}
-      style={style}
       {...attributes}
       {...listeners}
       onClick={(e) => {
@@ -81,7 +69,9 @@ function SortableSubtask({ item, onDelete, onEdit }: SortableSubtaskProps) {
           onEdit(item)
         }
       }}
-      className="bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:shadow-md transition-shadow group"
+      className={`bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:shadow-md transition-shadow group ${
+        isDragging ? 'opacity-50' : ''
+      }`}
     >
       {/* Title and Delete */}
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -190,17 +180,17 @@ function DroppableColumn({ statusId, statusName, statusColor, items, onDelete, o
         <span className="text-xs text-gray-500">({items.length})</span>
       </div>
 
-      <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-        <div className="space-y-2">
-          {items.map((item) => (
+      <div className="space-y-2">
+        {items
+          .sort((a, b) => a.order_index - b.order_index)
+          .map((item) => (
             <SortableSubtask key={item.id} item={item} onDelete={onDelete} onEdit={onEdit} />
           ))}
 
-          {items.length === 0 && (
-            <div className="text-xs text-gray-400 text-center py-4">Drop here</div>
-          )}
-        </div>
-      </SortableContext>
+        {items.length === 0 && (
+          <div className="text-xs text-gray-400 text-center py-4">Drop here</div>
+        )}
+      </div>
     </div>
   )
 }
@@ -259,15 +249,56 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
 
     const overId = over.id as string
 
+    // Determine the target status ID
+    let newStatusId = ''
+
     // Check if dropped on a status column
     const isDroppedOnColumn = boardStatuses.some((s) => s.id === overId)
 
-    if (isDroppedOnColumn && activeItem.status_id !== overId) {
-      // Move to different column
+    if (isDroppedOnColumn) {
+      newStatusId = overId
+    } else {
+      // If over is a subtask, find its status
+      const overItem = items.find((i) => i.id === overId)
+      if (overItem) {
+        newStatusId = overItem.status_id
+      }
+    }
+
+    if (!newStatusId) return
+
+    // Calculate new order_index based on position
+    const itemsInStatus = items
+      .filter((i) => i.status_id === newStatusId)
+      .sort((a, b) => a.order_index - b.order_index)
+
+    let newOrderIndex = activeItem.order_index
+
+    if (itemsInStatus.length > 0) {
+      const overItemId = over.id as string
+      const overItemIndex = itemsInStatus.findIndex((i) => i.id === overItemId)
+
+      if (overItemIndex === -1) {
+        // Dropped in empty area, add to end
+        newOrderIndex = itemsInStatus[itemsInStatus.length - 1].order_index + 1
+      } else if (overItemIndex === 0) {
+        newOrderIndex = itemsInStatus[0].order_index - 1
+      } else if (overItemIndex === itemsInStatus.length - 1) {
+        newOrderIndex = itemsInStatus[itemsInStatus.length - 1].order_index + 1
+      } else {
+        const above = itemsInStatus[overItemIndex - 1]
+        const below = itemsInStatus[overItemIndex]
+        newOrderIndex = (above.order_index + below.order_index) / 2
+      }
+    }
+
+    // Only update if status or order changed
+    if (activeItem.status_id !== newStatusId || activeItem.order_index !== newOrderIndex) {
       updateItem.mutate({
         id: activeItem.id,
         taskId,
-        status_id: overId,
+        status_id: newStatusId,
+        orderIndex: newOrderIndex,
       })
     }
   }

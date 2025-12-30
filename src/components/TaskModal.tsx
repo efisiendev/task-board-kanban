@@ -47,7 +47,7 @@ export default function TaskModal({
   const [labels, setLabels] = useState<string[]>([])
   const [estimatedTime, setEstimatedTime] = useState<string>('')
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'checklist' | 'pages' | 'relations'>('checklist')
+  const [activeTab, setActiveTab] = useState<'subtask' | 'pages' | 'relations'>('subtask')
   const [editingProperty, setEditingProperty] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -580,14 +580,14 @@ export default function TaskModal({
               <div className="flex gap-4 border-b border-gray-200 mb-4">
                 <button
                   type="button"
-                  onClick={() => setActiveTab('checklist')}
+                  onClick={() => setActiveTab('subtask')}
                   className={`pb-2 px-1 text-sm font-medium border-b-2 transition ${
-                    activeTab === 'checklist'
+                    activeTab === 'subtask'
                       ? 'border-blue-600 text-blue-600'
                       : 'border-transparent text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  Checklist
+                  Subtask
                 </button>
                 <button
                   type="button"
@@ -615,7 +615,7 @@ export default function TaskModal({
 
               {/* Tab Content */}
               <div>
-                {activeTab === 'checklist' && <SubTaskList taskId={task.id} boardId={task.board_id} />}
+                {activeTab === 'subtask' && <SubTaskList taskId={task.id} boardId={task.board_id} />}
                 {activeTab === 'pages' && <TaskPages taskId={task.id} />}
                 {activeTab === 'relations' && <TaskRelations taskId={task.id} boardId={task.board_id} />}
               </div>
