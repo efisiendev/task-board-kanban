@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { TaskChecklistItem, TaskPriority } from '../types'
+import { supabase } from '../lib/supabase'
 import UserSelector from './UserSelector'
 
 interface SubtaskModalProps {
@@ -31,32 +32,115 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
   const [labels, setLabels] = useState<string[]>([])
   const [estimatedTime, setEstimatedTime] = useState('')
   const [actualTime, setActualTime] = useState('')
+  const [editingProperty, setEditingProperty] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const initialSubtaskIdRef = useRef<string | null>(null)
+  const latestValuesRef = useRef({ title, description, priority, assignedTo, dueDate, startDate, labels, estimatedTime, actualTime })
+  const lastEditTimeRef = useRef<number>(0)
 
+  // Update ref with latest values on every render
+  latestValuesRef.current = { title, description, priority, assignedTo, dueDate, startDate, labels, estimatedTime, actualTime }
+
+  // Sync local state with subtask prop
   useEffect(() => {
-    if (subtask && mode === 'edit') {
-      setTitle(subtask.title)
-      setDescription('')
-      setPriority(subtask.priority)
-      setAssignedTo(subtask.assigned_to || '')
-      setDueDate(subtask.due_date || '')
-      setStartDate('')
-      setLabels(subtask.labels || [])
-      setEstimatedTime(subtask.estimated_time?.toString() || '')
-      setActualTime(subtask.actual_time?.toString() || '')
-    } else {
-      // Reset for create mode
-      setTitle('')
-      setDescription('')
-      setPriority(null)
-      setAssignedTo('')
-      setDueDate('')
-      setStartDate('')
-      setLabelInput('')
-      setLabels([])
-      setEstimatedTime('')
-      setActualTime('')
+    if (!isOpen) {
+      initialSubtaskIdRef.current = null
+      return
+    }
+
+    const subtaskId = subtask?.id || null
+    const isNewSubtask = subtaskId !== initialSubtaskIdRef.current
+    const timeSinceLastEdit = Date.now() - lastEditTimeRef.current
+    const isActivelyEditing = timeSinceLastEdit < 2000
+
+    if (isNewSubtask || !isActivelyEditing) {
+      if (isNewSubtask) {
+        initialSubtaskIdRef.current = subtaskId
+      }
+
+      if (subtask && mode === 'edit') {
+        setTitle(subtask.title)
+        setDescription('')
+        setPriority(subtask.priority)
+        setAssignedTo(subtask.assigned_to || '')
+        setDueDate(subtask.due_date || '')
+        setStartDate('')
+        setLabels(subtask.labels || [])
+        setEstimatedTime(subtask.estimated_time?.toString() || '')
+        setActualTime(subtask.actual_time?.toString() || '')
+      } else if (isNewSubtask && mode === 'create') {
+        setTitle('')
+        setDescription('')
+        setPriority(null)
+        setAssignedTo('')
+        setDueDate('')
+        setStartDate('')
+        setLabelInput('')
+        setLabels([])
+        setEstimatedTime('')
+        setActualTime('')
+      }
     }
   }, [subtask, mode, isOpen])
+
+  // Auto-save function for edit mode
+  const autoSave = useCallback(async () => {
+    if (!subtask || mode !== 'edit') return
+
+    const values = latestValuesRef.current
+    if (!values.title.trim()) return
+
+    setIsSaving(true)
+    try {
+      const { error } = await supabase
+        .from('task_checklist')
+        .update({
+          title: values.title,
+          priority: values.priority,
+          assigned_to: values.assignedTo || null,
+          due_date: values.dueDate || null,
+          labels: values.labels.length > 0 ? values.labels : null,
+          estimated_time: values.estimatedTime ? parseInt(values.estimatedTime) : null,
+          actual_time: values.actualTime ? parseInt(values.actualTime) : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', subtask.id)
+
+      if (error) throw error
+    } catch (error) {
+      console.error('Auto-save error:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }, [subtask, mode])
+
+  // Debounced auto-save
+  const debouncedAutoSave = useCallback(() => {
+    if (!subtask || mode !== 'edit') return
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      autoSave()
+    }, 500)
+  }, [subtask, mode, autoSave])
+
+  // Immediate auto-save
+  const immediateAutoSave = useCallback(() => {
+    if (subtask && mode === 'edit') {
+      autoSave()
+    }
+  }, [subtask, mode, autoSave])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleSave = () => {
     if (!title.trim()) return
@@ -73,17 +157,6 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
       actual_time: actualTime ? parseInt(actualTime) : null,
     })
 
-    // Reset form
-    setTitle('')
-    setDescription('')
-    setPriority(null)
-    setAssignedTo('')
-    setDueDate('')
-    setStartDate('')
-    setLabelInput('')
-    setLabels([])
-    setEstimatedTime('')
-    setActualTime('')
     onClose()
   }
 
@@ -91,23 +164,16 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
     if (labelInput.trim() && !labels.includes(labelInput.trim())) {
       setLabels([...labels, labelInput.trim()])
       setLabelInput('')
+      if (subtask && mode === 'edit') {
+        setTimeout(() => immediateAutoSave(), 100)
+      }
     }
   }
 
   const handleRemoveLabel = (label: string) => {
     setLabels(labels.filter((l) => l !== label))
-  }
-
-  const handleLabelKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      handleAddLabel()
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose()
+    if (subtask && mode === 'edit') {
+      setTimeout(() => immediateAutoSave(), 100)
     }
   }
 
@@ -119,241 +185,340 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Sidebar */}
-      <div
-        className="relative h-full w-full max-w-2xl bg-white shadow-2xl flex flex-col"
-        onKeyDown={handleKeyDown}
-      >
+      <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-white shadow-2xl flex flex-col animate-slide-in-right">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {mode === 'create' ? 'Add Subtask' : 'Edit Subtask'}
+          <h2 className="text-sm font-medium text-gray-500">
+            {mode === 'create' ? 'New Subtask' : 'Subtask'}
           </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Title <span className="text-red-500">*</span>
-            </label>
+          {/* Title - Large Notion-style */}
+          <div className="relative">
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter subtask title..."
+              onChange={(e) => {
+                setTitle(e.target.value)
+                lastEditTimeRef.current = Date.now()
+                if (subtask && mode === 'edit') debouncedAutoSave()
+              }}
+              className="w-full text-3xl font-bold border-none outline-none focus:ring-0 p-0"
+              placeholder="Untitled"
+              maxLength={200}
               autoFocus
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add description..."
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Priority */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Priority
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              <button
-                onClick={() => setPriority(null)}
-                className={`px-4 py-2 rounded-lg border transition ${
-                  priority === null
-                    ? 'bg-gray-100 border-gray-400 text-gray-900'
-                    : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
-                }`}
-              >
-                None
-              </button>
-              <button
-                onClick={() => setPriority('low')}
-                className={`px-4 py-2 rounded-lg border transition ${
-                  priority === 'low'
-                    ? 'bg-gray-100 border-gray-400 text-gray-900'
-                    : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
-                }`}
-              >
-                ▼ Low
-              </button>
-              <button
-                onClick={() => setPriority('medium')}
-                className={`px-4 py-2 rounded-lg border transition ${
-                  priority === 'medium'
-                    ? 'bg-blue-100 border-blue-400 text-blue-900'
-                    : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
-                }`}
-              >
-                ■ Medium
-              </button>
-              <button
-                onClick={() => setPriority('high')}
-                className={`px-4 py-2 rounded-lg border transition ${
-                  priority === 'high'
-                    ? 'bg-orange-100 border-orange-400 text-orange-900'
-                    : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
-                }`}
-              >
-                ▲ High
-              </button>
-              <button
-                onClick={() => setPriority('urgent')}
-                className={`px-4 py-2 rounded-lg border transition col-span-4 ${
-                  priority === 'urgent'
-                    ? 'bg-red-100 border-red-400 text-red-900'
-                    : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
-                }`}
-              >
-                ⚠ Urgent
-              </button>
-            </div>
-          </div>
-
-          {/* Due Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Due Date
-            </label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Assigned To */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Assigned To
-            </label>
-            <UserSelector value={assignedTo} onChange={setAssignedTo} />
-          </div>
-
-          {/* Start Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Date
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Labels */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Labels
-            </label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={labelInput}
-                onChange={(e) => setLabelInput(e.target.value)}
-                onKeyDown={handleLabelKeyDown}
-                placeholder="Add label..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={handleAddLabel}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                Add
-              </button>
-            </div>
-            {labels.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {labels.map((label) => (
-                  <span
-                    key={label}
-                    className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm flex items-center gap-2"
-                  >
-                    {label}
-                    <button
-                      onClick={() => handleRemoveLabel(label)}
-                      className="text-gray-500 hover:text-red-600"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
+            {isSaving && (
+              <div className="absolute right-0 top-2 text-xs text-gray-400">Saving...</div>
             )}
           </div>
 
-          {/* Estimated Time */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Estimated Time (minutes)
-            </label>
-            <input
-              type="number"
-              value={estimatedTime}
-              onChange={(e) => setEstimatedTime(e.target.value)}
-              placeholder="e.g., 30"
-              min="0"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+          {/* Description */}
+          <textarea
+            value={description}
+            onChange={(e) => {
+              setDescription(e.target.value)
+              lastEditTimeRef.current = Date.now()
+              if (subtask && mode === 'edit') debouncedAutoSave()
+            }}
+            className="w-full text-sm text-gray-700 border-none outline-none focus:ring-0 p-0 resize-none min-h-20"
+            placeholder="Add description..."
+            maxLength={2000}
+          />
 
-          {/* Actual Time */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Actual Time (minutes)
-            </label>
-            <input
-              type="number"
-              value={actualTime}
-              onChange={(e) => setActualTime(e.target.value)}
-              placeholder="e.g., 45"
-              min="0"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          {/* Properties - Notion style table */}
+          <div className="border-t border-gray-200 pt-4">
+            <div className="space-y-1">
+              {/* Priority */}
+              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
+                <div className="w-32 text-sm text-gray-600">Priority</div>
+                <div className="flex-1">
+                  {editingProperty === 'priority' ? (
+                    <select
+                      value={priority || ''}
+                      onChange={(e) => {
+                        setPriority((e.target.value as TaskPriority) || null)
+                        lastEditTimeRef.current = Date.now()
+                        setEditingProperty(null)
+                        immediateAutoSave()
+                      }}
+                      onBlur={() => setEditingProperty(null)}
+                      autoFocus
+                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
+                    >
+                      <option value="">None</option>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                  ) : (
+                    <div
+                      onClick={() => setEditingProperty('priority')}
+                      className="text-sm cursor-pointer px-2 py-1"
+                    >
+                      {priority ? (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                          priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                          priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">Empty</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Assigned */}
+              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
+                <div className="w-32 text-sm text-gray-600">Assigned</div>
+                <div className="flex-1">
+                  {editingProperty === 'assigned' ? (
+                    <div onBlur={() => setEditingProperty(null)}>
+                      <UserSelector
+                        value={assignedTo || null}
+                        onChange={(userId) => {
+                          setAssignedTo(userId)
+                          lastEditTimeRef.current = Date.now()
+                          setEditingProperty(null)
+                          immediateAutoSave()
+                        }}
+                        placeholder="Select user..."
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => setEditingProperty('assigned')}
+                      className="text-sm cursor-pointer px-2 py-1"
+                    >
+                      {assignedTo ? (
+                        <span className="text-gray-900">{assignedTo}</span>
+                      ) : (
+                        <span className="text-gray-400">Empty</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Start Date */}
+              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
+                <div className="w-32 text-sm text-gray-600">Start Date</div>
+                <div className="flex-1">
+                  {editingProperty === 'start_date' ? (
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value)
+                        lastEditTimeRef.current = Date.now()
+                        immediateAutoSave()
+                      }}
+                      onBlur={() => setEditingProperty(null)}
+                      autoFocus
+                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
+                    />
+                  ) : (
+                    <div
+                      onClick={() => setEditingProperty('start_date')}
+                      className="text-sm cursor-pointer px-2 py-1"
+                    >
+                      {startDate ? (
+                        <span className="text-gray-900">{new Date(startDate).toLocaleDateString()}</span>
+                      ) : (
+                        <span className="text-gray-400">Empty</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Due Date */}
+              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
+                <div className="w-32 text-sm text-gray-600">Due Date</div>
+                <div className="flex-1">
+                  {editingProperty === 'due_date' ? (
+                    <input
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) => {
+                        setDueDate(e.target.value)
+                        lastEditTimeRef.current = Date.now()
+                        immediateAutoSave()
+                      }}
+                      onBlur={() => setEditingProperty(null)}
+                      autoFocus
+                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
+                    />
+                  ) : (
+                    <div
+                      onClick={() => setEditingProperty('due_date')}
+                      className="text-sm cursor-pointer px-2 py-1"
+                    >
+                      {dueDate ? (
+                        <span className="text-gray-900">{new Date(dueDate).toLocaleDateString()}</span>
+                      ) : (
+                        <span className="text-gray-400">Empty</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Estimated Time */}
+              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
+                <div className="w-32 text-sm text-gray-600">Est. Time</div>
+                <div className="flex-1">
+                  {editingProperty === 'estimated_time' ? (
+                    <input
+                      type="number"
+                      value={estimatedTime}
+                      onChange={(e) => {
+                        setEstimatedTime(e.target.value)
+                        lastEditTimeRef.current = Date.now()
+                      }}
+                      onBlur={() => {
+                        setEditingProperty(null)
+                        immediateAutoSave()
+                      }}
+                      autoFocus
+                      placeholder="Minutes"
+                      min="0"
+                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
+                    />
+                  ) : (
+                    <div
+                      onClick={() => setEditingProperty('estimated_time')}
+                      className="text-sm cursor-pointer px-2 py-1"
+                    >
+                      {estimatedTime ? (
+                        <span className="text-gray-900">{estimatedTime} min</span>
+                      ) : (
+                        <span className="text-gray-400">Empty</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Actual Time */}
+              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
+                <div className="w-32 text-sm text-gray-600">Actual Time</div>
+                <div className="flex-1">
+                  {editingProperty === 'actual_time' ? (
+                    <input
+                      type="number"
+                      value={actualTime}
+                      onChange={(e) => {
+                        setActualTime(e.target.value)
+                        lastEditTimeRef.current = Date.now()
+                      }}
+                      onBlur={() => {
+                        setEditingProperty(null)
+                        immediateAutoSave()
+                      }}
+                      autoFocus
+                      placeholder="Minutes"
+                      min="0"
+                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
+                    />
+                  ) : (
+                    <div
+                      onClick={() => setEditingProperty('actual_time')}
+                      className="text-sm cursor-pointer px-2 py-1"
+                    >
+                      {actualTime ? (
+                        <span className="text-gray-900">{actualTime} min</span>
+                      ) : (
+                        <span className="text-gray-400">Empty</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Labels */}
+              <div className="flex items-start hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
+                <div className="w-32 text-sm text-gray-600 pt-1">Labels</div>
+                <div className="flex-1">
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {labels.map((label) => (
+                      <span
+                        key={label}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs"
+                      >
+                        {label}
+                        <button
+                          onClick={() => handleRemoveLabel(label)}
+                          className="text-gray-500 hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={labelInput}
+                      onChange={(e) => setLabelInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleAddLabel()
+                        }
+                      }}
+                      placeholder="Add label and press Enter"
+                      className="flex-1 text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1 bg-gray-50"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!title.trim()}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            {mode === 'create' ? 'Add Subtask' : 'Save Changes'}
-          </button>
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <div className="flex gap-3 justify-between items-center">
+            <div className="text-xs text-gray-500">
+              {isSaving && mode === 'edit' && 'Saving changes...'}
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-lg transition"
+              >
+                {mode === 'edit' ? 'Close' : 'Cancel'}
+              </button>
+              {mode === 'create' && (
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={!title.trim()}
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  Create
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
