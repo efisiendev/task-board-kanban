@@ -93,8 +93,7 @@ CREATE TABLE IF NOT EXISTS board_statuses (
   updated_at TIMESTAMPTZ DEFAULT NOW(),
 
   -- Constraints
-  UNIQUE(board_id, name),
-  UNIQUE(board_id, order_index)
+  UNIQUE(board_id, name)
 );
 
 CREATE INDEX IF NOT EXISTS idx_board_statuses_board_id ON board_statuses(board_id);
