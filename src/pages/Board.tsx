@@ -2,44 +2,56 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
+import { useBoards } from '../hooks/useBoards'
+import { useBoardMembers } from '../hooks/useBoardMembers'
 import KanbanBoard from '../components/KanbanBoard'
-import TaskModal from '../components/TaskModal'
+import TaskModal, { TaskFormData } from '../components/TaskModal'
+import BoardMembers from '../components/BoardMembers'
 import { Task } from '../types'
 
 export default function Board() {
   const { boardId } = useParams<{ boardId: string }>()
   const navigate = useNavigate()
-  const { signOut } = useAuth()
+  const { signOut, user } = useAuth()
+  const { data: boards = [] } = useBoards()
   const { data: tasks = [], isLoading } = useTasks(boardId!)
+  const { data: members = [] } = useBoardMembers(boardId!)
   const createTaskMutation = useCreateTask()
   const updateTaskMutation = useUpdateTask()
   const deleteTaskMutation = useDeleteTask()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showMembers, setShowMembers] = useState(false)
+
+  // Check if current user is board owner
+  const currentBoard = boards.find((b) => b.id === boardId)
+  const isOwner = currentBoard?.user_id === user?.id
 
   const filteredTasks = tasks.filter((task) =>
     task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
-  const handleCreateTask = async (title: string, description: string) => {
+  const handleCreateTask = async (data: TaskFormData) => {
     try {
-      await createTaskMutation.mutateAsync({ boardId: boardId!, title, description })
+      await createTaskMutation.mutateAsync({
+        boardId: boardId!,
+        ...data,
+      })
       setIsModalOpen(false)
     } catch (error) {
       console.error('Failed to create task:', error)
     }
   }
 
-  const handleUpdateTask = async (title: string, description: string) => {
+  const handleUpdateTask = async (data: TaskFormData) => {
     if (!editingTask) return
     try {
       await updateTaskMutation.mutateAsync({
         id: editingTask.id,
         boardId: boardId!,
-        title,
-        description,
+        ...data,
       })
       setEditingTask(null)
       setIsModalOpen(false)
@@ -96,6 +108,12 @@ export default function Board() {
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
             <button
+              onClick={() => setShowMembers(!showMembers)}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition"
+            >
+              👥 Members ({members.length})
+            </button>
+            <button
               onClick={() => {
                 setEditingTask(null)
                 setIsModalOpen(true)
@@ -110,29 +128,41 @@ export default function Board() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-12">
-        {isLoading ? (
-          <div className="text-center text-gray-600">Loading tasks...</div>
-        ) : (
-          <KanbanBoard
-            tasks={filteredTasks}
-            onTaskClick={(task) => {
-              setEditingTask(task)
-              setIsModalOpen(true)
-            }}
-            onTaskMoved={async (taskId, newStatus, newOrderIndex) => {
-              try {
-                await updateTaskMutation.mutateAsync({
-                  id: taskId,
-                  boardId: boardId!,
-                  status: newStatus as 'to_do' | 'in_progress' | 'done',
-                  order_index: newOrderIndex,
-                })
-              } catch (error) {
-                console.error('Failed to move task:', error)
-              }
-            }}
-          />
-        )}
+        <div className="flex gap-6">
+          {/* Kanban Board */}
+          <div className="flex-1">
+            {isLoading ? (
+              <div className="text-center text-gray-600">Loading tasks...</div>
+            ) : (
+              <KanbanBoard
+                tasks={filteredTasks}
+                onTaskClick={(task) => {
+                  setEditingTask(task)
+                  setIsModalOpen(true)
+                }}
+                onTaskMoved={async (taskId, newStatus, newOrderIndex) => {
+                  try {
+                    await updateTaskMutation.mutateAsync({
+                      id: taskId,
+                      boardId: boardId!,
+                      status: newStatus as 'to_do' | 'in_progress' | 'done',
+                      order_index: newOrderIndex,
+                    })
+                  } catch (error) {
+                    console.error('Failed to move task:', error)
+                  }
+                }}
+              />
+            )}
+          </div>
+
+          {/* Members Sidebar */}
+          {showMembers && (
+            <div className="w-80">
+              <BoardMembers boardId={boardId!} isOwner={isOwner} />
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Task Modal */}

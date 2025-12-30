@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { Task } from '../types'
+import { Task, TaskPriority } from '../types'
 
 export function useTasks(boardId: string) {
   const queryClient = useQueryClient()
@@ -22,6 +22,8 @@ export function useTasks(boardId: string) {
 
   // Subscribe to real-time updates
   useEffect(() => {
+    console.log('🔔 Setting up Realtime subscription for board:', boardId)
+
     const channel = supabase
       .channel(`board:${boardId}`)
       .on(
@@ -32,13 +34,17 @@ export function useTasks(boardId: string) {
           table: 'tasks',
           filter: `board_id=eq.${boardId}`,
         },
-        () => {
+        (payload) => {
+          console.log('✅ Realtime event received:', payload)
           queryClient.invalidateQueries({ queryKey: ['tasks', boardId] })
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('📡 Subscription status:', status)
+      })
 
     return () => {
+      console.log('🔕 Unsubscribing from board:', boardId)
       channel.unsubscribe()
     }
   }, [boardId, queryClient])
@@ -54,11 +60,26 @@ export function useCreateTask() {
       boardId,
       title,
       description,
+      priority,
+      assigned_to,
+      due_date,
+      start_date,
+      labels,
+      estimated_time,
     }: {
       boardId: string
       title: string
       description?: string
+      priority?: TaskPriority | null
+      assigned_to?: string | null
+      due_date?: string | null
+      start_date?: string | null
+      labels?: string[] | null
+      estimated_time?: number | null
     }) => {
+      // Get current user for created_by
+      const { data: { user } } = await supabase.auth.getUser()
+
       const { data, error } = await supabase
         .from('tasks')
         .insert({
@@ -67,6 +88,13 @@ export function useCreateTask() {
           description: description || null,
           status: 'to_do',
           order_index: 0,
+          priority: priority || null,
+          assigned_to: assigned_to || null,
+          due_date: due_date || null,
+          start_date: start_date || null,
+          labels: labels || null,
+          created_by: user?.id || null,
+          estimated_time: estimated_time || null,
         })
         .select()
         .single()
@@ -92,6 +120,13 @@ export function useUpdateTask() {
         description?: string
         status?: string
         order_index?: number
+        priority?: TaskPriority | null
+        assigned_to?: string | null
+        due_date?: string | null
+        start_date?: string | null
+        labels?: string[] | null
+        estimated_time?: number | null
+        actual_time?: number | null
       }
     ) => {
       const { id, boardId, ...updates } = variables

@@ -1,0 +1,138 @@
+import { useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '../lib/supabase'
+import { BoardMember, BoardMemberRole } from '../types'
+
+export function useBoardMembers(boardId: string) {
+  const queryClient = useQueryClient()
+
+  const query = useQuery({
+    queryKey: ['board-members', boardId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('board_members')
+        .select(`
+          *,
+          user_profiles(email, username, employee_number, division)
+        `)
+        .eq('board_id', boardId)
+        .order('joined_at', { ascending: true })
+
+      if (error) throw error
+      return data as BoardMember[]
+    },
+  })
+
+  // Real-time subscription for board members
+  useEffect(() => {
+    console.log('🔔 Setting up board members Realtime subscription for:', boardId)
+
+    const channel = supabase
+      .channel(`board-members:${boardId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'board_members',
+          filter: `board_id=eq.${boardId}`,
+        },
+        (payload) => {
+          console.log('✅ Board members Realtime event:', payload)
+          queryClient.invalidateQueries({ queryKey: ['board-members', boardId] })
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Board members subscription status:', status)
+      })
+
+    return () => {
+      console.log('🔕 Unsubscribing from board members:', boardId)
+      channel.unsubscribe()
+    }
+  }, [boardId, queryClient])
+
+  return query
+}
+
+export function useAddBoardMember() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      boardId,
+      userId,
+      role,
+    }: {
+      boardId: string
+      userId: string
+      role: BoardMemberRole
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser()
+
+      const { data, error } = await supabase
+        .from('board_members')
+        .insert({
+          board_id: boardId,
+          user_id: userId,
+          role: role || 'member',
+          invited_by: user?.id,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return data as BoardMember
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['board-members', variables.boardId] })
+    },
+  })
+}
+
+export function useRemoveBoardMember() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ boardId, memberId }: { boardId: string; memberId: string }) => {
+      const { error } = await supabase
+        .from('board_members')
+        .delete()
+        .eq('id', memberId)
+
+      if (error) throw error
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['board-members', variables.boardId] })
+    },
+  })
+}
+
+export function useUpdateMemberRole() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      boardId,
+      memberId,
+      role,
+    }: {
+      boardId: string
+      memberId: string
+      role: BoardMemberRole
+    }) => {
+      const { data, error } = await supabase
+        .from('board_members')
+        .update({ role })
+        .eq('id', memberId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data as BoardMember
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['board-members', variables.boardId] })
+    },
+  })
+}

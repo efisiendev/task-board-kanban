@@ -1,18 +1,23 @@
+import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { Board } from '../types'
 
 export function useBoards() {
-  return useQuery({
+  const queryClient = useQueryClient()
+
+  const query = useQuery({
     queryKey: ['boards'],
     queryFn: async () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser()
       if (authError || !user) throw new Error('Not authenticated')
 
+      // Query all boards - RLS will automatically filter to show:
+      // 1. Boards owned by user (user_id = auth.uid())
+      // 2. Boards where user is a member (via board_members table)
       const { data, error } = await supabase
         .from('boards')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -20,6 +25,64 @@ export function useBoards() {
     },
     staleTime: 0, // Always refetch to ensure fresh data per user
   })
+
+  // Real-time subscription for boards
+  useEffect(() => {
+    console.log('🔔 Setting up boards Realtime subscription')
+
+    const channel = supabase
+      .channel('boards-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'boards',
+        },
+        (payload) => {
+          console.log('✅ Boards Realtime event:', payload)
+          queryClient.invalidateQueries({ queryKey: ['boards'] })
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Boards subscription status:', status)
+      })
+
+    return () => {
+      console.log('🔕 Unsubscribing from boards')
+      channel.unsubscribe()
+    }
+  }, [queryClient])
+
+  // Real-time subscription for board_members (affects which boards user can see)
+  useEffect(() => {
+    console.log('🔔 Setting up board_members-changes Realtime subscription')
+
+    const channel = supabase
+      .channel('board-members-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'board_members',
+        },
+        (payload) => {
+          console.log('✅ Board members changes Realtime event:', payload)
+          queryClient.invalidateQueries({ queryKey: ['boards'] })
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Board members changes subscription status:', status)
+      })
+
+    return () => {
+      console.log('🔕 Unsubscribing from board_members-changes')
+      channel.unsubscribe()
+    }
+  }, [queryClient])
+
+  return query
 }
 
 export function useCreateBoard() {
