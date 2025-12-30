@@ -53,12 +53,14 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
     if (!subtask || mode !== 'edit' || !data.title.trim()) return
 
     await supabase
-      .from('task_checklist')
+      .from('tasks')
       .update({
         title: data.title,
+        description: data.description,
         priority: data.priority,
         assigned_to: data.assigned_to,
         due_date: data.due_date,
+        start_date: data.start_date,
         labels: data.labels,
         estimated_time: data.estimated_time,
         actual_time: data.actual_time,

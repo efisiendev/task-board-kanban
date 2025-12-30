@@ -27,19 +27,23 @@ export function TableView({ tasks, onTaskClick }: TableViewProps) {
   }
 
   const sortedTasks = [...tasks].sort((a, b) => {
-    let aVal: string | number | null | undefined = a[sortField]
-    let bVal: string | number | null | undefined = b[sortField]
+    let aVal: string | number | null | undefined
+    let bVal: string | number | null | undefined
 
     // Special handling for priority
     if (sortField === 'priority') {
       aVal = a.priority ? priorityOrder[a.priority] : 0
       bVal = b.priority ? priorityOrder[b.priority] : 0
     }
-
     // Special handling for status - using board_status name
-    if (sortField === 'status') {
+    else if (sortField === 'status') {
       aVal = a.board_status?.name || ''
       bVal = b.board_status?.name || ''
+    }
+    // Default field access
+    else {
+      aVal = a[sortField]
+      bVal = b[sortField]
     }
 
     // Handle null values

@@ -23,8 +23,9 @@ import {
   useDeleteChecklistItem,
 } from '../hooks/useTaskChecklist'
 import { useBoardStatuses } from '../hooks/useBoardStatuses'
+import { SubtaskModal } from './SubtaskModal'
 
-interface TaskChecklistProps {
+interface SubTaskListProps {
   taskId: string
   boardId: string
 }
@@ -32,9 +33,10 @@ interface TaskChecklistProps {
 interface SortableSubtaskProps {
   item: TaskChecklistItem
   onDelete: (id: string) => void
+  onEdit: (item: TaskChecklistItem) => void
 }
 
-function SortableSubtask({ item, onDelete }: SortableSubtaskProps) {
+function SortableSubtask({ item, onDelete, onEdit }: SortableSubtaskProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   })
@@ -72,7 +74,14 @@ function SortableSubtask({ item, onDelete }: SortableSubtaskProps) {
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-white p-3 rounded-lg border border-gray-200 cursor-move hover:shadow-md transition-shadow group"
+      onClick={(e) => {
+        // Only trigger edit if not clicking delete button
+        const target = e.target as HTMLElement
+        if (!target.closest('button')) {
+          onEdit(item)
+        }
+      }}
+      className="bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:shadow-md transition-shadow group"
     >
       {/* Title and Delete */}
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -159,9 +168,10 @@ interface DroppableColumnProps {
   statusColor: string
   items: TaskChecklistItem[]
   onDelete: (id: string) => void
+  onEdit: (item: TaskChecklistItem) => void
 }
 
-function DroppableColumn({ statusId, statusName, statusColor, items, onDelete }: DroppableColumnProps) {
+function DroppableColumn({ statusId, statusName, statusColor, items, onDelete, onEdit }: DroppableColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: statusId,
   })
@@ -183,7 +193,7 @@ function DroppableColumn({ statusId, statusName, statusColor, items, onDelete }:
       <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-2">
           {items.map((item) => (
-            <SortableSubtask key={item.id} item={item} onDelete={onDelete} />
+            <SortableSubtask key={item.id} item={item} onDelete={onDelete} onEdit={onEdit} />
           ))}
 
           {items.length === 0 && (
@@ -195,8 +205,11 @@ function DroppableColumn({ statusId, statusName, statusColor, items, onDelete }:
   )
 }
 
-export function TaskChecklist({ taskId, boardId }: TaskChecklistProps) {
+export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [selectedSubtask, setSelectedSubtask] = useState<TaskChecklistItem | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
   const { data: items = [], isLoading } = useTaskChecklist(taskId)
   const { data: boardStatuses = [] } = useBoardStatuses(boardId)
   const updateItem = useUpdateChecklistItem()
@@ -263,6 +276,18 @@ export function TaskChecklist({ taskId, boardId }: TaskChecklistProps) {
     deleteItem.mutate({ id, taskId })
   }
 
+  const handleEdit = (item: TaskChecklistItem) => {
+    setSelectedSubtask(item)
+    setIsModalOpen(true)
+  }
+
+  const handleModalSave = async () => {
+    // For edit mode, auto-save already handles updates
+    // Just close the modal
+    setIsModalOpen(false)
+    setSelectedSubtask(null)
+  }
+
   const activeItem = activeId ? items.find((i) => i.id === activeId) : null
 
   return (
@@ -284,6 +309,7 @@ export function TaskChecklist({ taskId, boardId }: TaskChecklistProps) {
               statusColor={status.color}
               items={itemsByStatusId[status.id] || []}
               onDelete={handleDelete}
+              onEdit={handleEdit}
             />
           ))}
         </div>
@@ -301,6 +327,18 @@ export function TaskChecklist({ taskId, boardId }: TaskChecklistProps) {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {/* Subtask Edit Modal */}
+      <SubtaskModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          setSelectedSubtask(null)
+        }}
+        onSave={handleModalSave}
+        subtask={selectedSubtask}
+        mode="edit"
+      />
     </div>
   )
 }

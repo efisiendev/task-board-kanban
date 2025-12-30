@@ -18,7 +18,6 @@ export function useTaskChecklist(taskId: string) {
       if (error) throw error
       return data as TaskChecklistItem[]
     },
-    refetchInterval: 2000, // Auto-refresh every 2s (temporary for debug)
   })
 
   // Real-time subscription for checklist items (now from tasks table)

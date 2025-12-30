@@ -88,7 +88,7 @@ export default function Board() {
     // Overdue filter
     const matchesOverdue =
       filters.isOverdue === null ||
-      (filters.isOverdue === true && task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done')
+      (filters.isOverdue === true && task.due_date && new Date(task.due_date) < new Date() && task.board_status?.name !== 'Done')
 
     return matchesSearch && matchesStatus && matchesPriority && matchesAssignee && matchesHasLabels && matchesOverdue
   })

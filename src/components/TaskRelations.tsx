@@ -77,17 +77,9 @@ export function TaskRelations({ taskId, boardId }: TaskRelationsProps) {
                   <span className="text-sm font-medium text-gray-900">
                     {relation.to_task?.title || 'Unknown task'}
                   </span>
-                  {relation.to_task?.status && (
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded ${
-                        relation.to_task.status === 'done'
-                          ? 'bg-green-100 text-green-700'
-                          : relation.to_task.status === 'in_progress'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      {relation.to_task.status.replace('_', ' ')}
+                  {relation.to_task?.status_id && (
+                    <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+                      Status ID: {relation.to_task.status_id.substring(0, 8)}...
                     </span>
                   )}
                 </div>
@@ -116,17 +108,9 @@ export function TaskRelations({ taskId, boardId }: TaskRelationsProps) {
                     {relation.from_task?.title || 'Unknown task'}
                   </span>
                   <span className="text-xs text-gray-500">{relationType?.label} this task</span>
-                  {relation.from_task?.status && (
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded ${
-                        relation.from_task.status === 'done'
-                          ? 'bg-green-100 text-green-700'
-                          : relation.from_task.status === 'in_progress'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      {relation.from_task.status.replace('_', ' ')}
+                  {relation.from_task?.status_id && (
+                    <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+                      Status ID: {relation.from_task.status_id.substring(0, 8)}...
                     </span>
                   )}
                 </div>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Task, TaskPriority } from '../types'
 import { supabase } from '../lib/supabase'
 import UserSelector from './UserSelector'
-import { TaskChecklist } from './TaskChecklist'
+import { SubTaskList } from './SubTaskList'
 import { TaskComments } from './TaskComments'
 import { ActivityLog } from './ActivityLog'
 import { TaskPages } from './TaskPages'
@@ -615,7 +615,7 @@ export default function TaskModal({
 
               {/* Tab Content */}
               <div>
-                {activeTab === 'checklist' && <TaskChecklist taskId={task.id} boardId={task.board_id} />}
+                {activeTab === 'checklist' && <SubTaskList taskId={task.id} boardId={task.board_id} />}
                 {activeTab === 'pages' && <TaskPages taskId={task.id} />}
                 {activeTab === 'relations' && <TaskRelations taskId={task.id} boardId={task.board_id} />}
               </div>
