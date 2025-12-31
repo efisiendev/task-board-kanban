@@ -15,7 +15,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/boards" element={<ProtectedRoute><Boards /></ProtectedRoute>} />
-          <Route path="/boards/:boardId" element={<ProtectedRoute><Board /></ProtectedRoute>} />
+          <Route path="/board/:boardId" element={<ProtectedRoute><Board /></ProtectedRoute>} />
           <Route path="/" element={<Navigate to="/boards" replace />} />
         </Routes>
       </BrowserRouter>
