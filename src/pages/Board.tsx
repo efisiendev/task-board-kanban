@@ -8,13 +8,14 @@ import { useBoardStatuses } from '../hooks/useBoardStatuses'
 import KanbanBoard from '../components/KanbanBoard'
 import { TableView } from '../components/TableView'
 import { ListView } from '../components/ListView'
+import { CalendarView } from '../components/CalendarView'
 import TaskModal, { TaskFormData } from '../components/TaskModal'
 import BoardMembers from '../components/BoardMembers'
 import BoardStatusManager from '../components/BoardStatusManager'
 import { FilterSidebar, TaskFilters } from '../components/FilterSidebar'
 import { Task } from '../types'
 
-type ViewType = 'kanban' | 'table' | 'list'
+type ViewType = 'kanban' | 'table' | 'list' | 'calendar'
 
 const DEFAULT_FILTERS: TaskFilters = {
   status: [],
@@ -192,6 +193,16 @@ export default function Board() {
               >
                 📝 List
               </button>
+              <button
+                onClick={() => setCurrentView('calendar')}
+                className={`px-3 py-1.5 rounded text-sm font-medium transition ${
+                  currentView === 'calendar'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                📅 Calendar
+              </button>
             </div>
 
             {/* Search - full width on mobile */}
@@ -339,6 +350,16 @@ export default function Board() {
                     } catch (error) {
                       console.error('Failed to move task:', error)
                     }
+                  }}
+                />
+              </div>
+            ) : currentView === 'calendar' ? (
+              <div className="px-4">
+                <CalendarView
+                  tasks={filteredTasks}
+                  onTaskClick={(task) => {
+                    setEditingTask(task)
+                    setIsModalOpen(true)
                   }}
                 />
               </div>
