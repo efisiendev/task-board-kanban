@@ -4,7 +4,7 @@ import { useBoards, useCreateBoard, useDeleteBoard } from '../hooks/useBoards'
 import { useAuth } from '../hooks/useAuth'
 import { Sidebar } from '../components/Sidebar'
 
-export default function Boards() {
+export default function Dashboard() {
   const { user, signOut } = useAuth()
   const { data: boards = [], isLoading } = useBoards()
   const createBoardMutation = useCreateBoard()
@@ -85,7 +85,7 @@ export default function Boards() {
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 py-6 md:py-12 w-full">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Your Boards</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
           {!showForm && (
             <button
               onClick={() => setShowForm(true)}

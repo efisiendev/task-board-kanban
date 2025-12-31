@@ -78,7 +78,7 @@ export function Sidebar({ isOpen, onClose, currentBoardId }: SidebarProps) {
                 My Boards
               </h3>
               <button
-                onClick={() => handleNavigate('/boards')}
+                onClick={() => handleNavigate('/dashboard')}
                 className="text-xs text-blue-600 hover:text-blue-700 font-medium"
               >
                 View All
@@ -111,7 +111,7 @@ export function Sidebar({ isOpen, onClose, currentBoardId }: SidebarProps) {
           {/* Quick Actions */}
           <div className="mb-4">
             <button
-              onClick={() => handleNavigate('/boards')}
+              onClick={() => handleNavigate('/dashboard')}
               className="w-full px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
             >
               <span className="text-lg">+</span>

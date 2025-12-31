@@ -166,10 +166,10 @@ export default function Board() {
                   </svg>
                 </button>
                 <button
-                  onClick={() => navigate('/boards')}
+                  onClick={() => navigate('/dashboard')}
                   className="text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base"
                 >
-                  ← Back to Boards
+                  ← Dashboard
                 </button>
                 <h1 className="text-xl md:text-3xl font-bold text-gray-900">TaskFlow</h1>
               </div>
