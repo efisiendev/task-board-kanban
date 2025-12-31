@@ -1,13 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { Task, TaskPriority } from '../types'
+import { useState, useEffect } from 'react'
+import { Task } from '../types'
 import { supabase } from '../lib/supabase'
-import UserSelector from './UserSelector'
 import { SubTaskList } from './SubTaskList'
 import { TaskComments } from './TaskComments'
 import { ActivityLog } from './ActivityLog'
 import { TaskPages } from './TaskPages'
 import { TaskRelations } from './TaskRelations'
-import { useUserProfile } from '../hooks/useUsers'
+import { useTaskFormState, TaskFormData } from '../hooks/useTaskFormState'
+import { useAutoSave } from '../hooks/useAutoSave'
+import { PropertyRow, PriorityField, DateField, TimeField, AssigneeField, LabelsField } from './shared'
 
 interface TaskModalProps {
   task: Task | null
@@ -18,16 +19,7 @@ interface TaskModalProps {
   onDelete: () => Promise<void>
 }
 
-export interface TaskFormData {
-  title: string
-  description: string
-  priority: TaskPriority | null
-  assigned_to: string | null
-  due_date: string | null
-  start_date: string | null
-  labels: string[] | null
-  estimated_time: number | null
-}
+export type { TaskFormData }
 
 export default function TaskModal({
   task,
@@ -37,201 +29,116 @@ export default function TaskModal({
   onUpdate,
   onDelete,
 }: TaskModalProps) {
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [priority, setPriority] = useState<TaskPriority | null>(null)
-  const [assignedTo, setAssignedTo] = useState<string>('')
-  const [dueDate, setDueDate] = useState<string>('')
-  const [startDate, setStartDate] = useState<string>('')
-  const [labelInput, setLabelInput] = useState<string>('')
-  const [labels, setLabels] = useState<string[]>([])
-  const [estimatedTime, setEstimatedTime] = useState<string>('')
-  const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'subtask' | 'pages' | 'relations'>('subtask')
   const [editingProperty, setEditingProperty] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const initialTaskIdRef = useRef<string | null>(null)
-  const latestValuesRef = useRef({ title, description, priority, assignedTo, dueDate, startDate, labels, estimatedTime })
-  const lastEditTimeRef = useRef<number>(0)
+  const [loading, setLoading] = useState(false)
 
-  // Get assignee profile for display
-  const { data: assigneeProfile } = useUserProfile(assignedTo || null)
+  // Auto-save function for edit mode
+  const handleAutoSave = async (data: TaskFormData) => {
+    if (!task || !data.title.trim()) return
 
-  // Update ref with latest values on every render
-  latestValuesRef.current = { title, description, priority, assignedTo, dueDate, startDate, labels, estimatedTime }
-
-  // Sync local state with task prop
-  // Allow sync on Realtime updates ONLY if user is not actively editing (last edit > 2 seconds ago)
-  useEffect(() => {
-    if (!isOpen) {
-      initialTaskIdRef.current = null
-      return
-    }
-
-    const taskId = task?.id || null
-    const isNewTask = taskId !== initialTaskIdRef.current
-    const timeSinceLastEdit = Date.now() - lastEditTimeRef.current
-    const isActivelyEditing = timeSinceLastEdit < 2000 // 2 seconds
-
-    // Sync if: new task opened OR task changed OR not actively editing
-    if (isNewTask || !isActivelyEditing) {
-      if (isNewTask) {
-        initialTaskIdRef.current = taskId
-      }
-
-      if (task) {
-        setTitle(task.title)
-        setDescription(task.description || '')
-        setPriority(task.priority || null)
-        setAssignedTo(task.assigned_to || '')
-        setDueDate(task.due_date || '')
-        setStartDate(task.start_date || '')
-        setLabels(task.labels || [])
-        setEstimatedTime(task.estimated_time ? String(task.estimated_time) : '')
-      } else if (isNewTask) {
-        setTitle('')
-        setDescription('')
-        setPriority(null)
-        setAssignedTo('')
-        setDueDate('')
-        setStartDate('')
-        setLabels([])
-        setLabelInput('')
-        setEstimatedTime('')
-      }
-    }
-  }, [task, isOpen])
-
-  // Helper: Auto-add user as board member when assigned
-  const ensureBoardMember = useCallback(async (userId: string, boardId: string) => {
-    if (!userId) return
-
-    try {
-      // Check if already a member
-      const { data: existing } = await supabase
-        .from('board_members')
-        .select('id')
-        .eq('board_id', boardId)
-        .eq('user_id', userId)
-        .single()
-
-      if (existing) return // Already a member
-
-      // Add as board member with 'member' role
-      await supabase
-        .from('board_members')
-        .insert({
-          board_id: boardId,
-          user_id: userId,
-          role: 'member',
-        })
-    } catch (error) {
-      console.error('Failed to add board member:', error)
-    }
-  }, [])
-
-  // Auto-save function - uses ref to get latest values
-  const autoSave = useCallback(async () => {
-    if (!task) return
-
-    const values = latestValuesRef.current
-    if (!values.title.trim()) return
-
-    setIsSaving(true)
     try {
       // If assigning to a user, ensure they're a board member
-      if (values.assignedTo) {
-        await ensureBoardMember(values.assignedTo, task.board_id)
+      if (data.assigned_to) {
+        const { data: existing } = await supabase
+          .from('board_members')
+          .select('id')
+          .eq('board_id', task.board_id)
+          .eq('user_id', data.assigned_to)
+          .maybeSingle()
+
+        if (!existing) {
+          await supabase.from('board_members').insert({
+            board_id: task.board_id,
+            user_id: data.assigned_to,
+            role: 'member',
+          })
+        }
       }
 
-      const { error } = await supabase
+      await supabase
         .from('tasks')
         .update({
-          title: values.title,
-          description: values.description,
-          priority: values.priority,
-          assigned_to: values.assignedTo || null,
-          due_date: values.dueDate || null,
-          start_date: values.startDate || null,
-          labels: values.labels.length > 0 ? values.labels : null,
-          estimated_time: values.estimatedTime ? parseInt(values.estimatedTime) : null,
+          title: data.title,
+          description: data.description,
+          priority: data.priority,
+          assigned_to: data.assigned_to,
+          due_date: data.due_date,
+          start_date: data.start_date,
+          labels: data.labels,
+          estimated_time: data.estimated_time,
           updated_at: new Date().toISOString(),
         })
         .eq('id', task.id)
-
-      if (error) throw error
     } catch (error) {
       console.error('Auto-save error:', error)
-    } finally {
-      setIsSaving(false)
     }
-  }, [task, ensureBoardMember])
+  }
 
-  // Debounced auto-save - stable function
-  const debouncedAutoSave = useCallback(() => {
-    if (!task) return
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-    }
-    saveTimeoutRef.current = setTimeout(() => {
-      autoSave()
-    }, 500)
-  }, [task, autoSave])
+  // Use shared auto-save hook (harus dipanggil dulu untuk bikin lastEditTimeRef)
+  const { isSaving, debouncedAutoSave, immediateAutoSave, lastEditTimeRef } = useAutoSave({
+    onSave: handleAutoSave,
+    delay: 500,
+  })
 
-  // Immediate auto-save for properties
-  const immediateAutoSave = useCallback(() => {
-    if (task) {
-      autoSave()
-    }
-  }, [task, autoSave])
+  // Use shared form state hook (terima lastEditTimeRef untuk proteksi Realtime)
+  const {
+    title,
+    setTitle,
+    description,
+    setDescription,
+    priority,
+    setPriority,
+    assignedTo,
+    setAssignedTo,
+    dueDate,
+    setDueDate,
+    startDate,
+    setStartDate,
+    labels,
+    labelInput,
+    setLabelInput,
+    handleAddLabel: addLabel,
+    handleRemoveLabel: removeLabel,
+    estimatedTime,
+    setEstimatedTime,
+    getFormData,
+  } = useTaskFormState({
+    initialData: task ? {
+      title: task.title,
+      description: task.description || '',
+      priority: task.priority,
+      assigned_to: task.assigned_to,
+      due_date: task.due_date,
+      start_date: task.start_date,
+      labels: task.labels,
+      estimated_time: task.estimated_time,
+      actual_time: task.actual_time,
+    } : null,
+    id: task?.id,
+    lastEditTimeRef,
+  })
 
-  // Cleanup timeout on unmount
+  // Auto-save saat title atau description berubah (SETELAH state update)
+  // Hanya save jika user baru saja edit (bukan saat initial data load atau Realtime sync)
   useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
+    if (task && (title || description)) {
+      const timeSinceLastEdit = Date.now() - lastEditTimeRef.current
+      if (timeSinceLastEdit < 1000) { // User baru edit dalam 1 detik (sama dengan Realtime protection)
+        debouncedAutoSave(getFormData())
       }
     }
-  }, [])
-
-  const handleAddLabel = () => {
-    if (labelInput.trim() && !labels.includes(labelInput.trim())) {
-      setLabels([...labels, labelInput.trim()])
-      setLabelInput('')
-      if (task) {
-        setTimeout(() => immediateAutoSave(), 100)
-      }
-    }
-  }
-
-  const handleRemoveLabel = (label: string) => {
-    setLabels(labels.filter((l) => l !== label))
-    if (task) {
-      setTimeout(() => immediateAutoSave(), 100)
-    }
-  }
+  }, [title, description]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async () => {
     if (!title.trim()) return
 
     setLoading(true)
     try {
-      const formData: TaskFormData = {
-        title,
-        description,
-        priority,
-        assigned_to: assignedTo || null,
-        due_date: dueDate || null,
-        start_date: startDate || null,
-        labels: labels.length > 0 ? labels : null,
-        estimated_time: estimatedTime ? parseInt(estimatedTime) : null,
-      }
-
       if (task) {
-        await onUpdate(formData)
+        await onUpdate(getFormData())
       } else {
-        await onCreate(formData)
+        await onCreate(getFormData())
       }
     } finally {
       setLoading(false)
@@ -277,7 +184,6 @@ export default function TaskModal({
               onChange={(e) => {
                 setTitle(e.target.value)
                 lastEditTimeRef.current = Date.now()
-                if (task) debouncedAutoSave()
               }}
               className="w-full text-3xl font-bold border-none outline-none focus:ring-0 p-0"
               placeholder="Untitled"
@@ -294,7 +200,6 @@ export default function TaskModal({
             onChange={(e) => {
               setDescription(e.target.value)
               lastEditTimeRef.current = Date.now()
-              if (task) debouncedAutoSave()
             }}
             className="w-full text-sm text-gray-700 border-none outline-none focus:ring-0 p-0 resize-none min-h-20"
             placeholder="Add description..."
@@ -305,263 +210,105 @@ export default function TaskModal({
           <div className="border-t border-gray-200 pt-4">
             <div className="space-y-1">
               {/* Priority */}
-              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
-                <div className="w-32 text-sm text-gray-600">Priority</div>
-                <div className="flex-1">
-                  {editingProperty === 'priority' ? (
-                    <select
-                      value={priority || ''}
-                      onChange={(e) => {
-                        setPriority((e.target.value as TaskPriority) || null)
-                        lastEditTimeRef.current = Date.now()
-                        setEditingProperty(null)
-                        immediateAutoSave()
-                      }}
-                      onBlur={() => setEditingProperty(null)}
-                      autoFocus
-                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
-                    >
-                      <option value="">None</option>
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
-                    </select>
-                  ) : (
-                    <div
-                      onClick={() => setEditingProperty('priority')}
-                      className="text-sm cursor-pointer px-2 py-1"
-                    >
-                      {priority ? (
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                          priority === 'urgent' ? 'bg-red-100 text-red-800' :
-                          priority === 'high' ? 'bg-orange-100 text-orange-800' :
-                          priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">Empty</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <PropertyRow label="Priority">
+                <PriorityField
+                  value={priority}
+                  isEditing={editingProperty === 'priority'}
+                  onEdit={() => setEditingProperty('priority')}
+                  onChange={(value) => {
+                    setPriority(value)
+                    lastEditTimeRef.current = Date.now()
+                    setEditingProperty(null)
+                    if (task) immediateAutoSave(getFormData())
+                  }}
+                  onBlur={() => setEditingProperty(null)}
+                />
+              </PropertyRow>
 
-              {/* Assigned To */}
-              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
-                <div className="w-32 text-sm text-gray-600">Assigned</div>
-                <div className="flex-1">
-                  {editingProperty === 'assigned' ? (
-                    <div onBlur={() => setEditingProperty(null)}>
-                      <UserSelector
-                        value={assignedTo || null}
-                        onChange={(userId) => {
-                          setAssignedTo(userId)
-                          lastEditTimeRef.current = Date.now()
-                          setEditingProperty(null)
-                          immediateAutoSave()
-                        }}
-                        placeholder="Select user..."
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => setEditingProperty('assigned')}
-                      className="text-sm cursor-pointer px-2 py-1"
-                    >
-                      {assigneeProfile ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium">
-                            {assigneeProfile.email[0].toUpperCase()}
-                          </div>
-                          <span className="text-gray-900">
-                            {assigneeProfile.email}
-                            {assigneeProfile.employee_number && ` - ${assigneeProfile.employee_number}`}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">Empty</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* Assigned */}
+              <PropertyRow label="Assigned">
+                <AssigneeField
+                  value={assignedTo}
+                  isEditing={editingProperty === 'assigned'}
+                  onEdit={() => setEditingProperty('assigned')}
+                  onChange={(value) => {
+                    setAssignedTo(value || '')
+                    lastEditTimeRef.current = Date.now()
+                    setEditingProperty(null)
+                    if (task) immediateAutoSave(getFormData())
+                  }}
+                  onBlur={() => setEditingProperty(null)}
+                />
+              </PropertyRow>
 
               {/* Start Date */}
-              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
-                <div className="w-32 text-sm text-gray-600">Start Date</div>
-                <div className="flex-1">
-                  {editingProperty === 'start_date' ? (
-                    <input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => {
-                        setStartDate(e.target.value)
-                        lastEditTimeRef.current = Date.now()
-                        immediateAutoSave()
-                      }}
-                      onBlur={() => setEditingProperty(null)}
-                      autoFocus
-                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
-                    />
-                  ) : (
-                    <div
-                      onClick={() => setEditingProperty('start_date')}
-                      className="text-sm cursor-pointer px-2 py-1"
-                    >
-                      {startDate ? (
-                        <span className="text-gray-900">{new Date(startDate).toLocaleDateString()}</span>
-                      ) : (
-                        <span className="text-gray-400">Empty</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <PropertyRow label="Start Date">
+                <DateField
+                  value={startDate}
+                  isEditing={editingProperty === 'start_date'}
+                  onEdit={() => setEditingProperty('start_date')}
+                  onChange={(value) => {
+                    setStartDate(value)
+                    lastEditTimeRef.current = Date.now()
+                    if (task) immediateAutoSave(getFormData())
+                  }}
+                  onBlur={() => setEditingProperty(null)}
+                />
+              </PropertyRow>
 
               {/* Due Date */}
-              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
-                <div className="w-32 text-sm text-gray-600">Due Date</div>
-                <div className="flex-1">
-                  {editingProperty === 'due_date' ? (
-                    <input
-                      type="date"
-                      value={dueDate}
-                      onChange={(e) => {
-                        setDueDate(e.target.value)
-                        lastEditTimeRef.current = Date.now()
-                        immediateAutoSave()
-                      }}
-                      onBlur={() => setEditingProperty(null)}
-                      autoFocus
-                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
-                    />
-                  ) : (
-                    <div
-                      onClick={() => setEditingProperty('due_date')}
-                      className="text-sm cursor-pointer px-2 py-1"
-                    >
-                      {dueDate ? (
-                        <span className="text-gray-900">{new Date(dueDate).toLocaleDateString()}</span>
-                      ) : (
-                        <span className="text-gray-400">Empty</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <PropertyRow label="Due Date">
+                <DateField
+                  value={dueDate}
+                  isEditing={editingProperty === 'due_date'}
+                  onEdit={() => setEditingProperty('due_date')}
+                  onChange={(value) => {
+                    setDueDate(value)
+                    lastEditTimeRef.current = Date.now()
+                    if (task) immediateAutoSave(getFormData())
+                  }}
+                  onBlur={() => setEditingProperty(null)}
+                />
+              </PropertyRow>
 
               {/* Estimated Time */}
-              <div className="flex items-center hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
-                <div className="w-32 text-sm text-gray-600">Est. Time</div>
-                <div className="flex-1">
-                  {editingProperty === 'estimated_time' ? (
-                    <input
-                      type="number"
-                      value={estimatedTime}
-                      onChange={(e) => {
-                        setEstimatedTime(e.target.value)
-                        lastEditTimeRef.current = Date.now()
-                      }}
-                      onBlur={() => {
-                        setEditingProperty(null)
-                        immediateAutoSave()
-                      }}
-                      autoFocus
-                      placeholder="Minutes"
-                      min="0"
-                      className="w-full text-sm border-none outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
-                    />
-                  ) : (
-                    <div
-                      onClick={() => setEditingProperty('estimated_time')}
-                      className="text-sm cursor-pointer px-2 py-1"
-                    >
-                      {estimatedTime ? (
-                        <span className="text-gray-900">{estimatedTime} min</span>
-                      ) : (
-                        <span className="text-gray-400">Empty</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <PropertyRow label="Est. Time">
+                <TimeField
+                  value={estimatedTime}
+                  isEditing={editingProperty === 'estimated_time'}
+                  onEdit={() => setEditingProperty('estimated_time')}
+                  onChange={(value) => {
+                    setEstimatedTime(value)
+                    lastEditTimeRef.current = Date.now()
+                  }}
+                  onBlur={() => {
+                    setEditingProperty(null)
+                    if (task) immediateAutoSave(getFormData())
+                  }}
+                />
+              </PropertyRow>
 
               {/* Labels */}
-              <div className="flex items-start hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded">
-                <div className="w-32 text-sm text-gray-600 pt-1">Labels</div>
-                <div className="flex-1">
-                  {editingProperty === 'labels' ? (
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={labelInput}
-                          onChange={(e) => setLabelInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault()
-                              handleAddLabel()
-                            } else if (e.key === 'Escape') {
-                              setEditingProperty(null)
-                            }
-                          }}
-                          autoFocus
-                          placeholder="Add label..."
-                          className="flex-1 text-sm border border-gray-300 outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
-                        />
-                        <button
-                          onClick={() => setEditingProperty(null)}
-                          className="text-sm text-gray-600 hover:text-gray-900"
-                        >
-                          Done
-                        </button>
-                      </div>
-                      {labels.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {labels.map((label) => (
-                            <span
-                              key={label}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs"
-                            >
-                              {label}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveLabel(label)}
-                                className="hover:text-blue-900"
-                              >
-                                ×
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => setEditingProperty('labels')}
-                      className="text-sm cursor-pointer px-2 py-1"
-                    >
-                      {labels.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {labels.map((label) => (
-                            <span
-                              key={label}
-                              className="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs"
-                            >
-                              {label}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">Empty</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <PropertyRow label="Labels">
+                <LabelsField
+                  labels={labels}
+                  labelInput={labelInput}
+                  isEditing={editingProperty === 'labels'}
+                  onEdit={() => setEditingProperty('labels')}
+                  onLabelInputChange={setLabelInput}
+                  onAddLabel={() => {
+                    addLabel(() => {
+                      if (task) immediateAutoSave(getFormData())
+                    })
+                  }}
+                  onRemoveLabel={(label) => {
+                    removeLabel(label, () => {
+                      if (task) immediateAutoSave(getFormData())
+                    })
+                  }}
+                  onBlur={() => setEditingProperty(null)}
+                />
+              </PropertyRow>
             </div>
           </div>
 

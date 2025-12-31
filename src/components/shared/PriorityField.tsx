@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react'
 import { TaskPriority } from '../../types'
 
 interface PriorityFieldProps {
@@ -8,44 +9,129 @@ interface PriorityFieldProps {
   onBlur: () => void
 }
 
-const PRIORITY_OPTIONS: { value: TaskPriority | null; label: string; emoji: string; colorClass: string }[] = [
-  { value: null, label: 'None', emoji: '', colorClass: 'text-gray-400' },
-  { value: 'low', label: 'Low', emoji: '🔵', colorClass: 'text-blue-600' },
-  { value: 'medium', label: 'Medium', emoji: '🟡', colorClass: 'text-yellow-600' },
-  { value: 'high', label: 'High', emoji: '🟠', colorClass: 'text-orange-600' },
-  { value: 'urgent', label: 'Urgent', emoji: '🔴', colorClass: 'text-red-600' },
+const PRIORITY_OPTIONS: {
+  value: TaskPriority | null
+  label: string
+  emoji: string
+  bgClass: string
+  textClass: string
+  hoverClass: string
+}[] = [
+  {
+    value: null,
+    label: 'None',
+    emoji: '⚪',
+    bgClass: 'bg-gray-50',
+    textClass: 'text-gray-600',
+    hoverClass: 'hover:bg-gray-100'
+  },
+  {
+    value: 'low',
+    label: 'Low',
+    emoji: '🔵',
+    bgClass: 'bg-blue-50',
+    textClass: 'text-blue-700',
+    hoverClass: 'hover:bg-blue-100'
+  },
+  {
+    value: 'medium',
+    label: 'Medium',
+    emoji: '🟡',
+    bgClass: 'bg-yellow-50',
+    textClass: 'text-yellow-700',
+    hoverClass: 'hover:bg-yellow-100'
+  },
+  {
+    value: 'high',
+    label: 'High',
+    emoji: '🟠',
+    bgClass: 'bg-orange-50',
+    textClass: 'text-orange-700',
+    hoverClass: 'hover:bg-orange-100'
+  },
+  {
+    value: 'urgent',
+    label: 'Urgent',
+    emoji: '🔴',
+    bgClass: 'bg-red-50',
+    textClass: 'text-red-700',
+    hoverClass: 'hover:bg-red-100'
+  },
 ]
 
 export function PriorityField({ value, isEditing, onEdit, onChange, onBlur }: PriorityFieldProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const selectedOption = PRIORITY_OPTIONS.find((opt) => opt.value === value) || PRIORITY_OPTIONS[0]
 
-  if (isEditing) {
+  // Auto-open dropdown when editing starts
+  useEffect(() => {
+    if (isEditing) {
+      setIsOpen(true)
+    } else {
+      setIsOpen(false)
+    }
+  }, [isEditing])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+        onBlur()
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isOpen, onBlur])
+
+  const handleSelect = (option: typeof PRIORITY_OPTIONS[0]) => {
+    onChange(option.value)
+    setIsOpen(false)
+  }
+
+  if (isEditing && isOpen) {
     return (
-      <select
-        value={value || ''}
-        onChange={(e) => {
-          const newValue = e.target.value === '' ? null : (e.target.value as TaskPriority)
-          onChange(newValue)
-        }}
-        onBlur={onBlur}
-        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-        autoFocus
-      >
-        {PRIORITY_OPTIONS.map((option) => (
-          <option key={option.label} value={option.value || ''}>
-            {option.emoji} {option.label}
-          </option>
-        ))}
-      </select>
+      <div ref={dropdownRef} className="relative">
+        <div className="absolute z-50 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+          {PRIORITY_OPTIONS.map((option) => (
+            <button
+              key={option.label}
+              type="button"
+              onClick={() => handleSelect(option)}
+              className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition ${option.hoverClass} ${
+                value === option.value ? option.bgClass : ''
+              }`}
+            >
+              <span className="text-base">{option.emoji}</span>
+              <span className={`font-medium ${option.textClass}`}>{option.label}</span>
+              {value === option.value && (
+                <svg className="ml-auto w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
     )
   }
 
   return (
-    <div onClick={onEdit} className="flex items-center gap-2 cursor-pointer">
+    <div
+      onClick={onEdit}
+      className="flex items-center gap-2 cursor-pointer px-2 py-1 rounded hover:bg-gray-50 transition"
+    >
       {value ? (
-        <span className={`text-sm font-medium ${selectedOption.colorClass}`}>
-          {selectedOption.emoji} {selectedOption.label}
-        </span>
+        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md ${selectedOption.bgClass}`}>
+          <span className="text-base">{selectedOption.emoji}</span>
+          <span className={`text-sm font-medium ${selectedOption.textClass}`}>
+            {selectedOption.label}
+          </span>
+        </div>
       ) : (
         <span className="text-sm text-gray-400">Empty</span>
       )}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TaskChecklistItem } from '../types'
 import { supabase } from '../lib/supabase'
 import UserSelector from './UserSelector'
@@ -17,7 +17,36 @@ interface SubtaskModalProps {
 }
 
 export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: SubtaskModalProps) {
-  // Use shared form state hook
+  const [editingProperty, setEditingProperty] = useState<string | null>(null)
+
+  // Auto-save function for edit mode
+  const handleAutoSave = async (data: TaskFormData) => {
+    if (!subtask || mode !== 'edit' || !data.title.trim()) return
+
+    await supabase
+      .from('tasks')
+      .update({
+        title: data.title,
+        description: data.description,
+        priority: data.priority,
+        assigned_to: data.assigned_to,
+        due_date: data.due_date,
+        start_date: data.start_date,
+        labels: data.labels,
+        estimated_time: data.estimated_time,
+        actual_time: data.actual_time,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', subtask.id)
+  }
+
+  // Use shared auto-save hook (harus dipanggil dulu untuk bikin lastEditTimeRef)
+  const { isSaving, debouncedAutoSave, immediateAutoSave, lastEditTimeRef } = useAutoSave({
+    onSave: handleAutoSave,
+    delay: 500,
+  })
+
+  // Use shared form state hook (terima lastEditTimeRef untuk proteksi Realtime)
   const {
     title,
     setTitle,
@@ -44,36 +73,19 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
   } = useTaskFormState({
     initialData: subtask && mode === 'edit' ? subtask : undefined,
     id: subtask?.id,
+    lastEditTimeRef,
   })
 
-  const [editingProperty, setEditingProperty] = useState<string | null>(null)
-
-  // Auto-save function for edit mode
-  const handleAutoSave = async (data: typeof getFormData extends () => infer R ? R : never) => {
-    if (!subtask || mode !== 'edit' || !data.title.trim()) return
-
-    await supabase
-      .from('tasks')
-      .update({
-        title: data.title,
-        description: data.description,
-        priority: data.priority,
-        assigned_to: data.assigned_to,
-        due_date: data.due_date,
-        start_date: data.start_date,
-        labels: data.labels,
-        estimated_time: data.estimated_time,
-        actual_time: data.actual_time,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', subtask.id)
-  }
-
-  // Use shared auto-save hook
-  const { isSaving, debouncedAutoSave, immediateAutoSave, lastEditTimeRef } = useAutoSave({
-    onSave: handleAutoSave,
-    delay: 500,
-  })
+  // Auto-save saat title atau description berubah (SETELAH state update)
+  // Hanya save jika user baru saja edit (bukan saat initial data load atau Realtime sync)
+  useEffect(() => {
+    if (subtask && mode === 'edit' && (title || description)) {
+      const timeSinceLastEdit = Date.now() - lastEditTimeRef.current
+      if (timeSinceLastEdit < 1000) { // User baru edit dalam 1 detik (sama dengan Realtime protection)
+        debouncedAutoSave(getFormData())
+      }
+    }
+  }, [title, description]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = () => {
     if (!title.trim()) return
@@ -114,8 +126,7 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value)
-                lastEditTimeRef.current = Date.now()
-                if (subtask && mode === 'edit') debouncedAutoSave(getFormData())
+                lastEditTimeRef.current = Date.now() // Tandai user sedang mengetik
               }}
               className="w-full text-3xl font-bold border-none outline-none focus:ring-0 p-0"
               placeholder="Untitled"
@@ -133,7 +144,6 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
             onChange={(e) => {
               setDescription(e.target.value)
               lastEditTimeRef.current = Date.now()
-              if (subtask && mode === 'edit') debouncedAutoSave(getFormData())
             }}
             className="w-full text-sm text-gray-700 border-none outline-none focus:ring-0 p-0 resize-none min-h-20"
             placeholder="Add description..."

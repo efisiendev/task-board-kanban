@@ -16,11 +16,13 @@ export interface TaskFormData {
 interface UseTaskFormStateOptions {
   initialData?: Partial<TaskFormData> | null
   id?: string
+  lastEditTimeRef?: React.MutableRefObject<number>
 }
 
-export function useTaskFormState({ initialData, id }: UseTaskFormStateOptions = {}) {
+export function useTaskFormState({ initialData, id, lastEditTimeRef }: UseTaskFormStateOptions = {}) {
   // Track initial ID to detect when editing different item
-  const initialIdRef = useRef(id)
+  // PENTING: Mulai dari undefined biar first render dianggap "new item" dan sync data
+  const initialIdRef = useRef<string | undefined>(undefined)
 
   // Form state
   const [title, setTitle] = useState('')
@@ -35,34 +37,45 @@ export function useTaskFormState({ initialData, id }: UseTaskFormStateOptions = 
   const [actualTime, setActualTime] = useState('')
 
   // Sync form state with initialData when it changes or new item is edited
+  // Proteksi: Jangan overwrite jika user sedang mengetik (dalam 2 detik terakhir)
   useEffect(() => {
-    if (id !== initialIdRef.current) {
+    const isNewItem = id !== initialIdRef.current
+    if (isNewItem) {
       initialIdRef.current = id
     }
 
-    if (initialData) {
-      setTitle(initialData.title || '')
-      setDescription(initialData.description || '')
-      setPriority(initialData.priority || null)
-      setAssignedTo(initialData.assigned_to || '')
-      setDueDate(initialData.due_date || '')
-      setStartDate(initialData.start_date || '')
-      setLabels(initialData.labels || [])
-      setEstimatedTime(initialData.estimated_time?.toString() || '')
-      setActualTime(initialData.actual_time?.toString() || '')
-    } else {
-      // Reset form for new item
-      setTitle('')
-      setDescription('')
-      setPriority(null)
-      setAssignedTo('')
-      setDueDate('')
-      setStartDate('')
-      setLabels([])
-      setEstimatedTime('')
-      setActualTime('')
+    // Cek apakah user sedang aktif mengetik
+    const timeSinceLastEdit = lastEditTimeRef ? Date.now() - lastEditTimeRef.current : Infinity
+    const isActivelyEditing = timeSinceLastEdit < 1000 // 1 detik proteksi (2x auto-save debounce)
+
+    // Hanya sync jika: item baru dibuka ATAU user tidak sedang mengetik
+    // Ini mencegah Realtime update menimpa input user
+    if (isNewItem || !isActivelyEditing) {
+      if (initialData) {
+        setTitle(initialData.title || '')
+        setDescription(initialData.description || '')
+        setPriority(initialData.priority || null)
+        setAssignedTo(initialData.assigned_to || '')
+        setDueDate(initialData.due_date || '')
+        setStartDate(initialData.start_date || '')
+        setLabels(initialData.labels || [])
+        setEstimatedTime(initialData.estimated_time?.toString() || '')
+        setActualTime(initialData.actual_time?.toString() || '')
+      } else if (isNewItem && !id) {
+        // Reset form HANYA untuk create mode (tidak ada id)
+        // Jangan reset saat buka existing task (ada id) walau initialData belum ready
+        setTitle('')
+        setDescription('')
+        setPriority(null)
+        setAssignedTo('')
+        setDueDate('')
+        setStartDate('')
+        setLabels([])
+        setEstimatedTime('')
+        setActualTime('')
+      }
     }
-  }, [initialData, id])
+  }, [initialData, id, lastEditTimeRef])
 
   // Label management
   const handleAddLabel = (onSave?: () => void) => {
