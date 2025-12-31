@@ -76,16 +76,18 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
     lastEditTimeRef,
   })
 
-  // Auto-save saat title atau description berubah (SETELAH state update)
-  // Hanya save jika user baru saja edit (bukan saat initial data load atau Realtime sync)
+  // Auto-save untuk semua field changes
+  // Proteksi Realtime sudah ada di useTaskFormState, jadi kita safe untuk auto-save setiap perubahan
   useEffect(() => {
-    if (subtask && mode === 'edit' && (title || description)) {
+    if (subtask && mode === 'edit') {
       const timeSinceLastEdit = Date.now() - lastEditTimeRef.current
-      if (timeSinceLastEdit < 1000) { // User baru edit dalam 1 detik (sama dengan Realtime protection)
+      // Hanya trigger autosave jika user baru edit (dalam 2 detik terakhir)
+      // Ini mencegah autosave saat initial load atau saat Realtime sync
+      if (timeSinceLastEdit < 2000) {
         debouncedAutoSave(getFormData())
       }
     }
-  }, [title, description]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [subtask, mode, title, description, priority, assignedTo, dueDate, startDate, labels, estimatedTime, actualTime]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = () => {
     if (!title.trim()) return
@@ -237,10 +239,10 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
                   onChange={(value) => {
                     setEstimatedTime(value)
                     lastEditTimeRef.current = Date.now()
+                    if (subtask && mode === 'edit') immediateAutoSave(getFormData())
                   }}
                   onBlur={() => {
                     setEditingProperty(null)
-                    if (subtask && mode === 'edit') immediateAutoSave(getFormData())
                   }}
                 />
               </PropertyRow>
@@ -254,10 +256,10 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
                   onChange={(value) => {
                     setActualTime(value)
                     lastEditTimeRef.current = Date.now()
+                    if (subtask && mode === 'edit') immediateAutoSave(getFormData())
                   }}
                   onBlur={() => {
                     setEditingProperty(null)
-                    if (subtask && mode === 'edit') immediateAutoSave(getFormData())
                   }}
                 />
               </PropertyRow>

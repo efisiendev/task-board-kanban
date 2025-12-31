@@ -119,16 +119,18 @@ export default function TaskModal({
     lastEditTimeRef,
   })
 
-  // Auto-save saat title atau description berubah (SETELAH state update)
-  // Hanya save jika user baru saja edit (bukan saat initial data load atau Realtime sync)
+  // Auto-save untuk semua field changes
+  // Proteksi Realtime sudah ada di useTaskFormState, jadi kita safe untuk auto-save setiap perubahan
   useEffect(() => {
-    if (task && (title || description)) {
+    if (task) {
       const timeSinceLastEdit = Date.now() - lastEditTimeRef.current
-      if (timeSinceLastEdit < 1000) { // User baru edit dalam 1 detik (sama dengan Realtime protection)
+      // Hanya trigger autosave jika user baru edit (dalam 2 detik terakhir)
+      // Ini mencegah autosave saat initial load atau saat Realtime sync
+      if (timeSinceLastEdit < 2000) {
         debouncedAutoSave(getFormData())
       }
     }
-  }, [title, description]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [task, title, description, priority, assignedTo, dueDate, startDate, labels, estimatedTime]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async () => {
     if (!title.trim()) return
@@ -280,10 +282,10 @@ export default function TaskModal({
                   onChange={(value) => {
                     setEstimatedTime(value)
                     lastEditTimeRef.current = Date.now()
+                    if (task) immediateAutoSave(getFormData())
                   }}
                   onBlur={() => {
                     setEditingProperty(null)
-                    if (task) immediateAutoSave(getFormData())
                   }}
                 />
               </PropertyRow>
