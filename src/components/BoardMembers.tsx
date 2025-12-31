@@ -47,15 +47,16 @@ export default function BoardMembers({ boardId, isOwner }: BoardMembersProps) {
   // Note: UserSelector handles filtering of already-added members internally
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Board Members ({members.length})</h3>
+    <div className="bg-white rounded-lg border border-gray-200 p-4 w-full max-w-full overflow-hidden">
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 truncate">Board Members ({members.length})</h3>
         {isOwner && (
           <button
             onClick={() => setShowInvite(!showInvite)}
-            className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm transition"
+            className="px-2 md:px-3 py-1 md:py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs md:text-sm transition whitespace-nowrap flex-shrink-0"
           >
-            + Invite Member
+            <span className="hidden md:inline">+ Invite Member</span>
+            <span className="md:hidden">+ Invite</span>
           </button>
         )}
       </div>
@@ -113,29 +114,29 @@ export default function BoardMembers({ boardId, isOwner }: BoardMembersProps) {
           members.map((member) => (
             <div
               key={member.id}
-              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 gap-2 min-w-0"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-medium">
+              <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-medium text-sm flex-shrink-0">
                   {member.user_profiles?.email[0].toUpperCase() || '?'}
                 </div>
-                <div>
-                  <div className="font-medium text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-gray-900 text-sm md:text-base truncate">
                     {member.user_profiles?.email || 'Unknown User'}
                   </div>
-                  <div className="text-sm text-gray-500 flex gap-2">
+                  <div className="text-xs md:text-sm text-gray-500 flex gap-2 truncate">
                     {member.user_profiles?.employee_number && (
                       <span>#{member.user_profiles.employee_number}</span>
                     )}
                     {member.user_profiles?.department && (
-                      <span>• {member.user_profiles.department}</span>
+                      <span className="truncate">• {member.user_profiles.department}</span>
                     )}
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                     member.role === 'owner'
                       ? 'bg-purple-100 text-purple-800'
                       : member.role === 'admin'
@@ -151,9 +152,10 @@ export default function BoardMembers({ boardId, isOwner }: BoardMembersProps) {
                   <button
                     onClick={() => handleRemoveMember(member.id)}
                     disabled={removeMemberMutation.isPending}
-                    className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-sm transition disabled:opacity-50"
+                    className="px-2 md:px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs md:text-sm transition disabled:opacity-50 whitespace-nowrap"
                   >
-                    Remove
+                    <span className="hidden md:inline">Remove</span>
+                    <span className="md:hidden">✕</span>
                   </button>
                 )}
               </div>

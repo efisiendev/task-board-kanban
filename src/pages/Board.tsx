@@ -247,7 +247,7 @@ export default function Board() {
                     className="fixed inset-0 z-10"
                     onClick={() => setShowNewMenu(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                  <div className="fixed md:absolute right-4 md:right-0 top-auto md:top-auto mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
                     <button
                       onClick={() => {
                         setEditingTask(null)
