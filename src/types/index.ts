@@ -154,3 +154,18 @@ export interface TaskActivityWithProfile extends TaskActivity {
 export interface BoardMemberWithProfile extends BoardMember {
   user_profiles?: UserProfile | null
 }
+
+export type BoardPageType = 'folder' | 'page'
+
+export interface BoardPage {
+  id: string
+  board_id: string
+  parent_id: string | null
+  title: string
+  content: string | null
+  type: BoardPageType
+  position: number
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}

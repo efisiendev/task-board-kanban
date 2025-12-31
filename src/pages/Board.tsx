@@ -9,12 +9,15 @@ import KanbanBoard from '../components/KanbanBoard'
 import { TableView } from '../components/TableView'
 import { ListView } from '../components/ListView'
 import { CalendarView } from '../components/CalendarView'
+import { PageTree } from '../components/PageTree'
+import { PageModal } from '../components/PageModal'
 import TaskModal, { TaskFormData } from '../components/TaskModal'
 import BoardMembers from '../components/BoardMembers'
 import BoardStatusManager from '../components/BoardStatusManager'
 import { FilterSidebar, TaskFilters } from '../components/FilterSidebar'
 import { Sidebar } from '../components/Sidebar'
-import { Task } from '../types'
+import { Task, BoardPage } from '../types'
+import { useBoardPages, useCreateBoardPage, useDeleteBoardPage } from '../hooks/useBoardPages'
 
 type ViewType = 'kanban' | 'table' | 'list' | 'calendar'
 
@@ -37,14 +40,19 @@ export default function Board() {
   const createTaskMutation = useCreateTask()
   const updateTaskMutation = useUpdateTask()
   const deleteTaskMutation = useDeleteTask()
+  const { data: pages = [] } = useBoardPages(boardId!)
+  const createPageMutation = useCreateBoardPage()
+  const deletePageMutation = useDeleteBoardPage()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [selectedPage, setSelectedPage] = useState<BoardPage | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [showMembers, setShowMembers] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [showStatuses, setShowStatuses] = useState(false)
   const [showNewMenu, setShowNewMenu] = useState(false)
   const [showSidebar, setShowSidebar] = useState(false)
+  const [showPages, setShowPages] = useState(false)
   const [currentView, setCurrentView] = useState<ViewType>('kanban')
   const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS)
 
@@ -262,6 +270,17 @@ export default function Board() {
                 <span className="md:hidden">👥</span>
                 <span className="hidden md:inline">👥 Members</span>
               </button>
+              <button
+                onClick={() => setShowPages(!showPages)}
+                className={`px-3 md:px-4 py-2 rounded-lg font-medium transition text-sm md:text-base ${
+                  showPages
+                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                }`}
+              >
+                <span className="md:hidden">📄</span>
+                <span className="hidden md:inline">📄 Pages</span>
+              </button>
               {/* New Dropdown Menu */}
               <div className="relative">
               <button
@@ -350,12 +369,82 @@ export default function Board() {
             </>
           )}
 
+          {/* Pages Sidebar - Fixed overlay on mobile, sidebar on desktop */}
+          {showPages && (
+            <>
+              {/* Mobile backdrop */}
+              <div
+                className="fixed inset-0 bg-black bg-opacity-20 z-40 md:hidden"
+                onClick={() => setShowPages(false)}
+              />
+              {/* Sidebar */}
+              <div className="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-80 md:w-96 md:pl-4 bg-white md:bg-transparent shadow-2xl md:shadow-none">
+                <div className="h-full overflow-hidden p-4 md:p-0">
+                  {/* Close button - mobile only */}
+                  <button
+                    onClick={() => setShowPages(false)}
+                    className="md:hidden mb-4 text-gray-400 hover:text-gray-600"
+                  >
+                    ✕ Close
+                  </button>
+                  <div className="h-[calc(100%-2rem)] md:h-full bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <PageTree
+                      pages={pages}
+                      selectedPageId={selectedPage?.id || null}
+                      onSelectPage={(page) => {
+                        if (page?.type === 'page') {
+                          setSelectedPage(page)
+                          setShowPages(false) // Close sidebar on mobile
+                        }
+                      }}
+                      onCreatePage={async (parentId) => {
+                        try {
+                          await createPageMutation.mutateAsync({
+                            board_id: boardId!,
+                            parent_id: parentId,
+                            title: 'Untitled',
+                            type: 'page',
+                            content: '',
+                          })
+                        } catch (error) {
+                          console.error('Failed to create page:', error)
+                        }
+                      }}
+                      onCreateFolder={async (parentId) => {
+                        try {
+                          await createPageMutation.mutateAsync({
+                            board_id: boardId!,
+                            parent_id: parentId,
+                            title: 'New Folder',
+                            type: 'folder',
+                          })
+                        } catch (error) {
+                          console.error('Failed to create folder:', error)
+                        }
+                      }}
+                      onDeletePage={async (page) => {
+                        try {
+                          await deletePageMutation.mutateAsync({
+                            id: page.id,
+                            board_id: boardId!,
+                          })
+                        } catch (error) {
+                          console.error('Failed to delete page:', error)
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
           {/* Board Views */}
           <div className="flex-1 min-w-0 px-2 md:px-0">
             {isLoading ? (
               <div className="text-center text-gray-600 px-4">Loading tasks...</div>
             ) : currentView === 'kanban' ? (
-              <div className={showFilters || showMembers ? '' : 'px-4'}>
+              <div className={showFilters || showMembers || showPages ? '' : 'px-4'}>
                 <KanbanBoard
                   tasks={filteredTasks}
                   statuses={statuses}
@@ -434,6 +523,7 @@ export default function Board() {
               </div>
             </>
           )}
+
         </div>
       </main>
 
@@ -475,6 +565,14 @@ export default function Board() {
           onCreate={handleCreateTask}
           onUpdate={handleUpdateTask}
           onDelete={handleDeleteTask}
+        />
+      )}
+
+      {/* Page Modal */}
+      {selectedPage && (
+        <PageModal
+          page={selectedPage}
+          onClose={() => setSelectedPage(null)}
         />
       )}
       </div>
