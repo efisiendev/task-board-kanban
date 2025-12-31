@@ -156,7 +156,7 @@ export default function TaskModal({
       />
 
       {/* Sidebar */}
-      <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-white shadow-2xl flex flex-col animate-slide-in-right">
+      <div className="absolute right-0 top-0 bottom-0 w-full md:w-2/3 lg:w-1/2 bg-white shadow-2xl flex flex-col animate-slide-in-right">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">

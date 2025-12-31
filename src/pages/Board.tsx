@@ -30,7 +30,7 @@ export default function Board() {
   const { signOut, user } = useAuth()
   const { data: boards = [] } = useBoards()
   const { data: tasks = [], isLoading } = useTasks(boardId!)
-  const { data: members = [] } = useBoardMembers(boardId!)
+  useBoardMembers(boardId!) // Keep data in cache
   const { data: statuses = [] } = useBoardStatuses(boardId!)
   const createTaskMutation = useCreateTask()
   const updateTaskMutation = useUpdateTask()
@@ -140,28 +140,28 @@ export default function Board() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 py-4 md:py-6">
+          <div className="flex justify-between items-center mb-3 md:mb-4">
+            <div className="flex items-center gap-2 md:gap-4">
               <button
                 onClick={() => navigate('/boards')}
-                className="text-blue-600 hover:text-blue-800 font-medium"
+                className="text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base"
               >
                 ← Back to Boards
               </button>
-              <h1 className="text-3xl font-bold text-gray-900">TaskFlow</h1>
+              <h1 className="text-xl md:text-3xl font-bold text-gray-900">TaskFlow</h1>
             </div>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg transition"
+              className="px-3 py-1.5 md:px-4 md:py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg transition text-sm md:text-base"
             >
               Logout
             </button>
           </div>
 
-          <div className="flex gap-4 items-center">
-            {/* View Switcher */}
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+          <div className="flex flex-col md:flex-row gap-2 md:gap-4 items-stretch md:items-center">
+            {/* View Switcher - Hidden on mobile */}
+            <div className="hidden md:flex gap-1 bg-gray-100 p-1 rounded-lg">
               <button
                 onClick={() => setCurrentView('kanban')}
                 className={`px-3 py-1.5 rounded text-sm font-medium transition ${
@@ -194,45 +194,48 @@ export default function Board() {
               </button>
             </div>
 
+            {/* Search - full width on mobile */}
             <input
               type="text"
               placeholder="Search tasks..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="flex-1 w-full md:w-auto px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base"
             />
-            <div className="relative">
+            
+            {/* Action buttons - compact on mobile */}
+            <div className="flex gap-2 md:gap-4">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
+                className={`px-3 md:px-4 py-2 rounded-lg font-medium transition text-sm md:text-base ${
                   showFilters
                     ? 'bg-blue-100 text-blue-700 border border-blue-300'
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
                 }`}
               >
-                🔍 Filter
+                <span className="md:hidden">🔍</span>
+                <span className="hidden md:inline">🔍 Filter</span>
               </button>
-            </div>
-            <div className="relative">
               <button
                 onClick={() => setShowMembers(!showMembers)}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
+                className={`px-3 md:px-4 py-2 rounded-lg font-medium transition text-sm md:text-base ${
                   showMembers
                     ? 'bg-blue-100 text-blue-700 border border-blue-300'
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
                 }`}
               >
-                👥 Members
+                <span className="md:hidden">👥</span>
+                <span className="hidden md:inline">👥 Members</span>
               </button>
-            </div>
-            {/* New Dropdown Menu */}
-            <div className="relative">
+              {/* New Dropdown Menu */}
+              <div className="relative">
               <button
                 onClick={() => setShowNewMenu(!showNewMenu)}
-                className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition flex items-center gap-2"
+                className="px-4 md:px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition flex items-center gap-1 md:gap-2 text-sm md:text-base"
               >
-                New
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="md:hidden">+</span>
+                <span className="hidden md:inline">New</span>
+                <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -275,27 +278,45 @@ export default function Board() {
                 </>
               )}
             </div>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="w-full py-12">
+      <main className="w-full py-6 md:py-12">
         <div className="flex gap-6">
-          {/* Filter Sidebar */}
+          {/* Filter Sidebar - Fixed overlay on mobile, sidebar on desktop */}
           {showFilters && (
-            <div className="pl-4">
-              <FilterSidebar
-                filters={filters}
-                statuses={statuses}
-                onChange={setFilters}
-                onClear={() => setFilters(DEFAULT_FILTERS)}
+            <>
+              {/* Mobile backdrop */}
+              <div
+                className="fixed inset-0 bg-black bg-opacity-20 z-40 md:hidden"
+                onClick={() => setShowFilters(false)}
               />
-            </div>
+              {/* Sidebar */}
+              <div className="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-80 md:w-auto md:pl-4 bg-white md:bg-transparent shadow-2xl md:shadow-none">
+                <div className="h-full overflow-y-auto p-4 md:p-0">
+                  {/* Close button - mobile only */}
+                  <button
+                    onClick={() => setShowFilters(false)}
+                    className="md:hidden mb-4 text-gray-400 hover:text-gray-600"
+                  >
+                    ✕ Close
+                  </button>
+                  <FilterSidebar
+                    filters={filters}
+                    statuses={statuses}
+                    onChange={setFilters}
+                    onClear={() => setFilters(DEFAULT_FILTERS)}
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           {/* Board Views */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 px-2 md:px-0">
             {isLoading ? (
               <div className="text-center text-gray-600 px-4">Loading tasks...</div>
             ) : currentView === 'kanban' ? (
@@ -345,11 +366,28 @@ export default function Board() {
             )}
           </div>
 
-          {/* Members Sidebar */}
+          {/* Members Sidebar - Fixed overlay on mobile, sidebar on desktop */}
           {showMembers && (
-            <div className="w-80 pr-4">
-              <BoardMembers boardId={boardId!} isOwner={isOwner} />
-            </div>
+            <>
+              {/* Mobile backdrop */}
+              <div
+                className="fixed inset-0 bg-black bg-opacity-20 z-40 md:hidden"
+                onClick={() => setShowMembers(false)}
+              />
+              {/* Sidebar */}
+              <div className="fixed md:static inset-y-0 right-0 z-50 md:z-auto w-80 md:pr-4 bg-white md:bg-transparent shadow-2xl md:shadow-none">
+                <div className="h-full overflow-y-auto p-4 md:p-0">
+                  {/* Close button - mobile only */}
+                  <button
+                    onClick={() => setShowMembers(false)}
+                    className="md:hidden mb-4 text-gray-400 hover:text-gray-600"
+                  >
+                    ✕ Close
+                  </button>
+                  <BoardMembers boardId={boardId!} isOwner={isOwner} />
+                </div>
+              </div>
+            </>
           )}
         </div>
       </main>
@@ -363,7 +401,7 @@ export default function Board() {
             onClick={() => setShowStatuses(false)}
           />
           {/* Sidebar */}
-          <div className="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 overflow-y-auto">
+          <div className="fixed top-0 right-0 h-full w-full md:w-96 bg-white shadow-2xl z-50 overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Board Settings</h2>
               <button

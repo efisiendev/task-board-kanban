@@ -101,7 +101,7 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Sidebar */}
-      <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-white shadow-2xl flex flex-col animate-slide-in-right">
+      <div className="absolute right-0 top-0 bottom-0 w-full md:w-2/3 lg:w-1/2 bg-white shadow-2xl flex flex-col animate-slide-in-right">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-sm font-medium text-gray-500">
