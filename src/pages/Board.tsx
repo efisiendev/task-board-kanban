@@ -155,23 +155,22 @@ export default function Board() {
           <div className="max-w-7xl mx-auto px-4 py-4 md:py-6">
             <div className="flex justify-between items-center mb-3 md:mb-4">
               <div className="flex items-center gap-2 md:gap-4">
-                {/* Hamburger Menu Button */}
+                {/* Hamburger Menu Button - Visible on all screens */}
                 <button
                   onClick={() => setShowSidebar(!showSidebar)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition md:hidden"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
                   aria-label="Toggle sidebar"
                 >
-                  <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 md:w-6 md:h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base"
+                  className="text-xl md:text-3xl font-bold text-gray-900 hover:text-blue-600 transition"
                 >
-                  ← Dashboard
+                  TaskFlow
                 </button>
-                <h1 className="text-xl md:text-3xl font-bold text-gray-900">TaskFlow</h1>
               </div>
               <button
                 onClick={handleLogout}

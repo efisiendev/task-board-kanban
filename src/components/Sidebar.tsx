@@ -41,8 +41,8 @@ export function Sidebar({ isOpen, onClose, currentBoardId }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:static top-0 left-0 bottom-0 w-64 bg-white border-r border-gray-200 z-50 flex flex-col transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        className={`fixed top-0 left-0 bottom-0 w-64 bg-white border-r border-gray-200 z-50 flex flex-col transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* User Profile Section */}
