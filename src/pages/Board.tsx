@@ -161,47 +161,51 @@ export default function Board() {
           </div>
 
           <div className="flex flex-col md:flex-row gap-2 md:gap-4 items-stretch md:items-center">
-            {/* View Switcher - Hidden on mobile */}
-            <div className="hidden md:flex gap-1 bg-gray-100 p-1 rounded-lg">
+            {/* View Switcher - Responsive */}
+            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg overflow-x-auto">
               <button
                 onClick={() => setCurrentView('kanban')}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition ${
+                className={`px-2 md:px-3 py-1.5 rounded text-xs md:text-sm font-medium transition whitespace-nowrap ${
                   currentView === 'kanban'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                📊 Kanban
+                <span className="hidden sm:inline">📊 Kanban</span>
+                <span className="sm:hidden">📊</span>
               </button>
               <button
                 onClick={() => setCurrentView('table')}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition ${
+                className={`px-2 md:px-3 py-1.5 rounded text-xs md:text-sm font-medium transition whitespace-nowrap ${
                   currentView === 'table'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                📋 Table
+                <span className="hidden sm:inline">📋 Table</span>
+                <span className="sm:hidden">📋</span>
               </button>
               <button
                 onClick={() => setCurrentView('list')}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition ${
+                className={`px-2 md:px-3 py-1.5 rounded text-xs md:text-sm font-medium transition whitespace-nowrap ${
                   currentView === 'list'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                📝 List
+                <span className="hidden sm:inline">📝 List</span>
+                <span className="sm:hidden">📝</span>
               </button>
               <button
                 onClick={() => setCurrentView('calendar')}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition ${
+                className={`px-2 md:px-3 py-1.5 rounded text-xs md:text-sm font-medium transition whitespace-nowrap ${
                   currentView === 'calendar'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                📅 Calendar
+                <span className="hidden sm:inline">📅 Calendar</span>
+                <span className="sm:hidden">📅</span>
               </button>
             </div>
 
