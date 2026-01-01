@@ -47,12 +47,12 @@ CREATE INDEX idx_task_comments_task_created
 ON task_comments(task_id, created_at DESC);
 
 -- ============================================================================
--- TASK_ACTIVITY TABLE INDEXES
+-- TASK_ACTIVITY_LOG TABLE INDEXES
 -- ============================================================================
 
 -- Add index for activity queries (ordered by created_at DESC)
-CREATE INDEX IF NOT EXISTS idx_task_activity_task_created
-ON task_activity(task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_task_activity_log_task_created
+ON task_activity_log(task_id, created_at DESC);
 
 -- ============================================================================
 -- BOARD_PAGES TABLE INDEXES
