@@ -1,5 +1,6 @@
 -- Performance indexes based on actual query patterns in the codebase
 -- This migration only includes indexes for queries that are actually used
+-- Safe for production - only creates indexes that don't exist yet
 
 -- ============================================================================
 -- TASKS TABLE INDEXES
@@ -77,8 +78,5 @@ ON user_profiles(user_id);
 -- - src/hooks/useBatchUserProfiles.ts
 -- - src/hooks/useBoardStatuses.ts
 --
--- Indexes removed from original audit (not actually used in code):
--- - idx_tasks_due_date (no query filters by due_date alone)
--- - idx_tasks_created_at (no query orders by created_at)
--- - idx_tasks_assigned_board (no query filters by assigned_to + board_id)
--- - idx_tasks_labels_gin (no query searches labels array)
+-- All indexes use IF NOT EXISTS so safe to run multiple times
+-- This migration is production-ready
