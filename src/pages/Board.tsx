@@ -572,6 +572,7 @@ export default function Board() {
       {selectedPage && (
         <PageModal
           page={selectedPage}
+          pages={pages}
           onClose={() => setSelectedPage(null)}
         />
       )}
