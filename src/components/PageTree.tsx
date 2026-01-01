@@ -27,6 +27,8 @@ export function PageTree({
   const [renameValue, setRenameValue] = useState('')
   const [showFolderPrompt, setShowFolderPrompt] = useState(false)
   const [folderNameInput, setFolderNameInput] = useState('')
+  const [creatingInFolderId, setCreatingInFolderId] = useState<string | null>(null)
+  const [showFolderMenu, setShowFolderMenu] = useState<string | null>(null)
 
   // Filter pages based on search
   const filteredPages = searchQuery.trim()
@@ -97,10 +99,15 @@ export function PageTree({
 
   const handleFolderCreate = () => {
     if (folderNameInput.trim()) {
-      onCreateFolder(null, folderNameInput.trim())
+      onCreateFolder(creatingInFolderId, folderNameInput.trim())
       setFolderNameInput('')
       setShowFolderPrompt(false)
       setShowNewMenu(false)
+      setCreatingInFolderId(null)
+      // Auto-expand the parent folder if creating inside
+      if (creatingInFolderId) {
+        setExpandedFolders(prev => new Set(prev).add(creatingInFolderId))
+      }
     }
   }
 
@@ -196,6 +203,58 @@ export function PageTree({
           {/* Action Buttons */}
           {!isRenaming && (
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+              {/* Add button for folders */}
+              {isFolder && (
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowFolderMenu(showFolderMenu === page.id ? null : page.id)
+                    }}
+                    className="flex-shrink-0 text-gray-400 hover:text-green-600"
+                    title="Add to folder"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+
+                  {/* Folder Add Menu */}
+                  {showFolderMenu === page.id && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowFolderMenu(null)}
+                      />
+                      <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onCreatePage(page.id)
+                            setShowFolderMenu(null)
+                            setExpandedFolders(prev => new Set(prev).add(page.id))
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2"
+                        >
+                          <span>📄</span> New Page
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setCreatingInFolderId(page.id)
+                            setShowFolderPrompt(true)
+                            setShowFolderMenu(null)
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100"
+                        >
+                          <span>📁</span> New Subfolder
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* Rename Button */}
               <button
                 onClick={(e) => {
@@ -278,6 +337,7 @@ export function PageTree({
                   </button>
                   <button
                     onClick={() => {
+                      setCreatingInFolderId(null)
                       setShowFolderPrompt(true)
                       setShowNewMenu(false)
                     }}
