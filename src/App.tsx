@@ -6,7 +6,18 @@ import Dashboard from './pages/Dashboard'
 import Board from './pages/Board'
 import './App.css'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2, // 2 minutes - data considered fresh
+      gcTime: 1000 * 60 * 10, // 10 minutes - cache retention time
+      refetchOnWindowFocus: false, // Don't refetch when user returns to tab
+      refetchOnMount: false, // Don't refetch on component mount if data is fresh
+      refetchOnReconnect: true, // Refetch on internet reconnect
+      retry: 1, // Only retry failed queries once
+    },
+  },
+})
 
 function App() {
   return (

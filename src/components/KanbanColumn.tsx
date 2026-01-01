@@ -1,5 +1,6 @@
+import { useMemo } from 'react'
 import { useDroppable } from '@dnd-kit/core'
-import { Task } from '../types'
+import { Task, UserProfile } from '../types'
 import TaskCard from './TaskCard'
 
 interface KanbanColumnProps {
@@ -7,6 +8,7 @@ interface KanbanColumnProps {
   statusLabel: string
   statusColor: string
   tasks: Task[]
+  userProfiles: UserProfile[]
   onTaskClick: (task: Task) => void
 }
 
@@ -26,11 +28,18 @@ export default function KanbanColumn({
   statusLabel,
   statusColor,
   tasks,
+  userProfiles,
   onTaskClick,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: statusId, data: { statusId } })
 
   const bgColor = COLOR_CLASSES[statusColor] || 'bg-gray-100'
+
+  // Memoize sorted tasks to avoid sorting on every render
+  const sortedTasks = useMemo(
+    () => [...tasks].sort((a, b) => a.order_index - b.order_index),
+    [tasks]
+  )
 
   return (
     <div className={`flex flex-col ${bgColor} rounded-lg p-4 min-h-96 w-80 flex-shrink-0 transition ${isOver ? 'ring-2 ring-blue-400' : ''}`}>
@@ -39,12 +48,11 @@ export default function KanbanColumn({
       </h2>
 
       <div ref={setNodeRef} className="flex-1 space-y-2 overflow-y-auto">
-        {tasks
-          .sort((a, b) => a.order_index - b.order_index)
-          .map((task) => (
+        {sortedTasks.map((task) => (
             <TaskCard
               key={task.id}
               task={task}
+              userProfiles={userProfiles}
               onClick={() => onTaskClick(task)}
             />
           ))}

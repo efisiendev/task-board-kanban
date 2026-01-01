@@ -6,17 +6,18 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { Task, BoardStatus } from '../types'
+import { Task, BoardStatus, UserProfile } from '../types'
 import KanbanColumn from './KanbanColumn'
 
 interface KanbanBoardProps {
   tasks: Task[]
   statuses: BoardStatus[]
+  userProfiles: UserProfile[]
   onTaskClick: (task: Task) => void
   onTaskMoved: (taskId: string, newStatusId: string, newOrderIndex: number) => void
 }
 
-export default function KanbanBoard({ tasks, statuses, onTaskClick, onTaskMoved }: KanbanBoardProps) {
+export default function KanbanBoard({ tasks, statuses, userProfiles, onTaskClick, onTaskMoved }: KanbanBoardProps) {
 
   // Configure pointer sensor for better drag detection
   const sensors = useSensors(
@@ -88,6 +89,7 @@ export default function KanbanBoard({ tasks, statuses, onTaskClick, onTaskMoved 
               statusLabel={status.name}
               statusColor={status.color}
               tasks={tasks.filter((t) => t.status_id === status.id)}
+              userProfiles={userProfiles}
               onTaskClick={onTaskClick}
             />
           ))}

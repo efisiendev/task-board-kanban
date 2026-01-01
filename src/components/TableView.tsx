@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { Task } from '../types'
-import { useUserProfile } from '../hooks/useUsers'
+import { useState, useMemo } from 'react'
+import { Task, UserProfile } from '../types'
+import { useProfileFromBatch } from '../hooks/useBatchUserProfiles'
 
 interface TableViewProps {
   tasks: Task[]
+  userProfiles: UserProfile[]
   onTaskClick: (task: Task) => void
 }
 
@@ -13,7 +14,7 @@ type SortDirection = 'asc' | 'desc'
 const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }
 const statusOrder = { to_do: 1, in_progress: 2, done: 3 }
 
-export function TableView({ tasks, onTaskClick }: TableViewProps) {
+export function TableView({ tasks, userProfiles, onTaskClick }: TableViewProps) {
   const [sortField, setSortField] = useState<SortField>('created_at')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
@@ -26,7 +27,8 @@ export function TableView({ tasks, onTaskClick }: TableViewProps) {
     }
   }
 
-  const sortedTasks = [...tasks].sort((a, b) => {
+  // Memoize sorted tasks to avoid sorting on every render
+  const sortedTasks = useMemo(() => [...tasks].sort((a, b) => {
     let aVal: string | number | null | undefined
     let bVal: string | number | null | undefined
 
@@ -64,7 +66,7 @@ export function TableView({ tasks, onTaskClick }: TableViewProps) {
     }
 
     return 0
-  })
+  }), [tasks, sortField, sortDirection])
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -89,7 +91,7 @@ export function TableView({ tasks, onTaskClick }: TableViewProps) {
               </tr>
             ) : (
               sortedTasks.map((task) => (
-                <TableRow key={task.id} task={task} onClick={() => onTaskClick(task)} />
+                <TableRow key={task.id} task={task} userProfiles={userProfiles} onClick={() => onTaskClick(task)} />
               ))
             )}
           </tbody>
@@ -138,11 +140,12 @@ function TableHeader({ label, field, sortField, sortDirection, onSort, width, so
 
 interface TableRowProps {
   task: Task
+  userProfiles: UserProfile[]
   onClick: () => void
 }
 
-function TableRow({ task, onClick }: TableRowProps) {
-  const { data: assigneeProfile } = useUserProfile(task.assigned_to)
+function TableRow({ task, userProfiles, onClick }: TableRowProps) {
+  const assigneeProfile = useProfileFromBatch(task.assigned_to, userProfiles)
 
   const priorityColors = {
     low: 'bg-blue-100 text-blue-800',

@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
 import { useBoards } from '../hooks/useBoards'
 import { useBoardMembers } from '../hooks/useBoardMembers'
 import { useBoardStatuses } from '../hooks/useBoardStatuses'
+import { useBatchUserProfiles } from '../hooks/useBatchUserProfiles'
 import KanbanBoard from '../components/KanbanBoard'
 import { TableView } from '../components/TableView'
 import { ListView } from '../components/ListView'
@@ -57,6 +58,10 @@ export default function Board() {
   const [currentView, setCurrentView] = useState<ViewType>('kanban')
   const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS)
 
+  // Batch fetch all user profiles for tasks (prevents N+1 queries)
+  const assigneeIds = useMemo(() => tasks.map(t => t.assigned_to), [tasks])
+  const { data: userProfiles = [] } = useBatchUserProfiles(assigneeIds)
+
   // Check if current user is board owner
   const currentBoard = boards.find((b) => b.id === boardId)
   const isOwner = currentBoard?.user_id === user?.id
@@ -72,38 +77,40 @@ export default function Board() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasks])
 
-  // Apply search and filters
-  const filteredTasks = tasks.filter((task) => {
-    // Search filter
-    const matchesSearch =
-      !searchQuery ||
-      task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  // Apply search and filters (memoized for performance)
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      // Search filter
+      const matchesSearch =
+        !searchQuery ||
+        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()))
 
-    // Status filter (using status_id)
-    const matchesStatus = filters.status.length === 0 || filters.status.includes(task.status_id)
+      // Status filter (using status_id)
+      const matchesStatus = filters.status.length === 0 || filters.status.includes(task.status_id)
 
-    // Priority filter
-    const matchesPriority = filters.priority.length === 0 || (task.priority && filters.priority.includes(task.priority))
+      // Priority filter
+      const matchesPriority = filters.priority.length === 0 || (task.priority && filters.priority.includes(task.priority))
 
-    // Assignee filter
-    const matchesAssignee =
-      filters.assignee.length === 0 ||
-      (filters.assignee.includes('unassigned') && !task.assigned_to) ||
-      (task.assigned_to && filters.assignee.includes(task.assigned_to))
+      // Assignee filter
+      const matchesAssignee =
+        filters.assignee.length === 0 ||
+        (filters.assignee.includes('unassigned') && !task.assigned_to) ||
+        (task.assigned_to && filters.assignee.includes(task.assigned_to))
 
-    // Has labels filter
-    const matchesHasLabels =
-      filters.hasLabels === null ||
-      (filters.hasLabels === true && task.labels && task.labels.length > 0)
+      // Has labels filter
+      const matchesHasLabels =
+        filters.hasLabels === null ||
+        (filters.hasLabels === true && task.labels && task.labels.length > 0)
 
-    // Overdue filter
-    const matchesOverdue =
-      filters.isOverdue === null ||
-      (filters.isOverdue === true && task.due_date && new Date(task.due_date) < new Date() && task.board_status?.name !== 'Done')
+      // Overdue filter
+      const matchesOverdue =
+        filters.isOverdue === null ||
+        (filters.isOverdue === true && task.due_date && new Date(task.due_date) < new Date() && task.board_status?.name !== 'Done')
 
-    return matchesSearch && matchesStatus && matchesPriority && matchesAssignee && matchesHasLabels && matchesOverdue
-  })
+      return matchesSearch && matchesStatus && matchesPriority && matchesAssignee && matchesHasLabels && matchesOverdue
+    })
+  }, [tasks, searchQuery, filters])
 
   const handleCreateTask = async (data: TaskFormData) => {
     try {
@@ -460,6 +467,7 @@ export default function Board() {
                 <KanbanBoard
                   tasks={filteredTasks}
                   statuses={statuses}
+                  userProfiles={userProfiles}
                   onTaskClick={(task) => {
                     setEditingTask(task)
                     setIsModalOpen(true)
@@ -493,6 +501,7 @@ export default function Board() {
                 {currentView === 'table' ? (
                   <TableView
                     tasks={filteredTasks}
+                    userProfiles={userProfiles}
                     onTaskClick={(task) => {
                       setEditingTask(task)
                       setIsModalOpen(true)
@@ -502,6 +511,7 @@ export default function Board() {
                   <ListView
                     tasks={filteredTasks}
                     statuses={statuses}
+                    userProfiles={userProfiles}
                     onTaskClick={(task) => {
                       setEditingTask(task)
                       setIsModalOpen(true)

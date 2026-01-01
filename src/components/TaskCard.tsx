@@ -1,10 +1,12 @@
+import { useMemo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
-import { Task } from '../types'
-import { useUserProfile } from '../hooks/useUsers'
+import { Task, UserProfile } from '../types'
+import { useProfileFromBatch } from '../hooks/useBatchUserProfiles'
 import { useTaskChecklist } from '../hooks/useTaskChecklist'
 
 interface TaskCardProps {
   task: Task
+  userProfiles: UserProfile[]
   onClick: () => void
 }
 
@@ -15,11 +17,13 @@ const priorityColors = {
   urgent: 'bg-red-100 text-red-800',
 }
 
-export default function TaskCard({ task, onClick }: TaskCardProps) {
+export default function TaskCard({ task, userProfiles, onClick }: TaskCardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
   })
-  const { data: assigneeProfile } = useUserProfile(task.assigned_to)
+
+  // Get assignee profile from batched data
+  const assigneeProfile = useProfileFromBatch(task.assigned_to, userProfiles)
   const { data: checklistItems = [] } = useTaskChecklist(task.id)
 
   const handleClick = () => {
@@ -28,24 +32,36 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
     }
   }
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return null
-    const date = new Date(dateString)
+  // Memoize date calculations to avoid creating new Date objects on every render
+  const { formattedDate, isOverdue } = useMemo(() => {
+    if (!task.due_date) return { formattedDate: null, isOverdue: false }
+
+    const date = new Date(task.due_date)
     const today = new Date()
     const tomorrow = new Date(today)
     tomorrow.setDate(tomorrow.getDate() + 1)
 
-    if (date.toDateString() === today.toDateString()) return 'Today'
-    if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow'
+    let formatted: string
+    if (date.toDateString() === today.toDateString()) {
+      formatted = 'Today'
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      formatted = 'Tomorrow'
+    } else {
+      formatted = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    }
 
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
+    return {
+      formattedDate: formatted,
+      isOverdue: date < new Date()
+    }
+  }, [task.due_date])
 
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date()
-
-  const checklistCompleted = checklistItems.filter((i) => i.is_completed).length
-  const checklistTotal = checklistItems.length
-  const hasChecklist = checklistTotal > 0
+  // Memoize checklist calculations
+  const { checklistCompleted, checklistTotal, hasChecklist } = useMemo(() => ({
+    checklistCompleted: checklistItems.filter((i) => i.is_completed).length,
+    checklistTotal: checklistItems.length,
+    hasChecklist: checklistItems.length > 0
+  }), [checklistItems])
 
   return (
     <div
@@ -112,9 +128,9 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
               ☑️ {checklistCompleted}/{checklistTotal}
             </span>
           )}
-          {task.due_date && (
+          {formattedDate && (
             <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-600 font-medium' : ''}`}>
-              📅 {formatDate(task.due_date)}
+              📅 {formattedDate}
             </span>
           )}
           {task.estimated_time && (

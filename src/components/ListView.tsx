@@ -1,20 +1,31 @@
-import { Task, BoardStatus } from '../types'
-import { useUserProfile } from '../hooks/useUsers'
+import { useMemo } from 'react'
+import { Task, BoardStatus, UserProfile } from '../types'
+import { useProfileFromBatch } from '../hooks/useBatchUserProfiles'
 
 interface ListViewProps {
   tasks: Task[]
   statuses: BoardStatus[]
+  userProfiles: UserProfile[]
   onTaskClick: (task: Task) => void
 }
 
-export function ListView({ tasks, statuses, onTaskClick }: ListViewProps) {
+export function ListView({ tasks, statuses, userProfiles, onTaskClick }: ListViewProps) {
+  // Memoize tasks grouped by status
+  const tasksByStatus = useMemo(() => {
+    return statuses.reduce((acc, status) => {
+      acc[status.id] = tasks.filter(t => t.status_id === status.id)
+      return acc
+    }, {} as Record<string, Task[]>)
+  }, [tasks, statuses])
+
   return (
     <div className="space-y-6">
       {statuses.map((status) => (
         <ListSection
           key={status.id}
           title={status.name}
-          tasks={tasks.filter((t) => t.status_id === status.id)}
+          tasks={tasksByStatus[status.id] || []}
+          userProfiles={userProfiles}
           onTaskClick={onTaskClick}
           emptyMessage={`No tasks in ${status.name.toLowerCase()}`}
         />
@@ -26,11 +37,12 @@ export function ListView({ tasks, statuses, onTaskClick }: ListViewProps) {
 interface ListSectionProps {
   title: string
   tasks: Task[]
+  userProfiles: UserProfile[]
   onTaskClick: (task: Task) => void
   emptyMessage: string
 }
 
-function ListSection({ title, tasks, onTaskClick, emptyMessage }: ListSectionProps) {
+function ListSection({ title, tasks, userProfiles, onTaskClick, emptyMessage }: ListSectionProps) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
@@ -44,7 +56,7 @@ function ListSection({ title, tasks, onTaskClick, emptyMessage }: ListSectionPro
           </div>
         ) : (
           tasks.map((task) => (
-            <ListItem key={task.id} task={task} onClick={() => onTaskClick(task)} />
+            <ListItem key={task.id} task={task} userProfiles={userProfiles} onClick={() => onTaskClick(task)} />
           ))
         )}
       </div>
@@ -54,11 +66,12 @@ function ListSection({ title, tasks, onTaskClick, emptyMessage }: ListSectionPro
 
 interface ListItemProps {
   task: Task
+  userProfiles: UserProfile[]
   onClick: () => void
 }
 
-function ListItem({ task, onClick }: ListItemProps) {
-  const { data: assigneeProfile } = useUserProfile(task.assigned_to)
+function ListItem({ task, userProfiles, onClick }: ListItemProps) {
+  const assigneeProfile = useProfileFromBatch(task.assigned_to, userProfiles)
 
   const priorityColors = {
     low: 'text-blue-600',
