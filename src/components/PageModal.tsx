@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { BoardPage } from '../types'
 import { useUpdateBoardPage } from '../hooks/useBoardPages'
+import { RichTextEditor } from './RichTextEditor'
+import { MarkdownEditor } from './MarkdownEditor'
 
 interface PageModalProps {
   page: BoardPage
@@ -15,6 +15,7 @@ export function PageModal({ page, pages, onClose }: PageModalProps) {
   const [content, setContent] = useState(page.content || '')
   const [isSaving, setIsSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [editorMode, setEditorMode] = useState<'rich' | 'markdown'>('rich')
   const updateMutation = useUpdateBoardPage()
   const lastEditTimeRef = useRef(Date.now())
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
@@ -117,6 +118,32 @@ export function PageModal({ page, pages, onClose }: PageModalProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* Editor Mode Toggle (only in edit mode) */}
+              {isEditing && (
+                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setEditorMode('rich')}
+                    className={`px-3 py-1 rounded text-xs font-medium transition ${
+                      editorMode === 'rich'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    📝 Rich Text
+                  </button>
+                  <button
+                    onClick={() => setEditorMode('markdown')}
+                    className={`px-3 py-1 rounded text-xs font-medium transition ${
+                      editorMode === 'markdown'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    🔤 Markdown
+                  </button>
+                </div>
+              )}
+
               {/* View/Edit Toggle */}
               <button
                 onClick={() => setIsEditing(!isEditing)}
@@ -156,41 +183,53 @@ export function PageModal({ page, pages, onClose }: PageModalProps) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          {isEditing ? (
-            <>
-              {/* Title - Edit Mode */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Title */}
+          <div className="px-8 py-6 border-b border-gray-100">
+            {isEditing ? (
               <input
                 type="text"
                 value={title}
                 onChange={(e) => handleTitleChange(e.target.value)}
-                className="w-full text-3xl md:text-4xl font-bold border-none outline-none focus:ring-0 p-0 mb-6"
+                className="w-full text-3xl md:text-4xl font-bold border-none outline-none focus:ring-0 p-0"
                 placeholder="Untitled"
                 maxLength={200}
               />
-
-              {/* Content - Edit Mode */}
-              <textarea
-                value={content}
-                onChange={(e) => handleContentChange(e.target.value)}
-                className="w-full min-h-[400px] text-base text-gray-700 border-none outline-none focus:ring-0 p-0 resize-none font-mono"
-                placeholder="Start writing... (Markdown supported)"
-              />
-            </>
-          ) : (
-            <>
-              {/* Title - View Mode */}
-              <h1 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
+            ) : (
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
                 {title || 'Untitled'}
               </h1>
+            )}
+          </div>
 
-              {/* Content - View Mode with Markdown */}
-              {content ? (
-                <div className="prose prose-slate max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {content}
-                  </ReactMarkdown>
-                </div>
+          {/* Content Editor */}
+          <div className="min-h-[400px]">
+            {isEditing ? (
+              editorMode === 'markdown' ? (
+                /* Markdown Mode - Split View with Live Preview */
+                <MarkdownEditor
+                  content={content}
+                  onChange={handleContentChange}
+                  placeholder="Start writing markdown... (Supports: **bold**, *italic*, # heading, - lists, [links](url))"
+                />
+              ) : (
+                /* Rich Text Mode - WYSIWYG Editor with Markdown Paste Support */
+                <RichTextEditor
+                  content={content}
+                  onChange={handleContentChange}
+                  placeholder="Start writing... (Tip: Paste markdown for auto-formatting!)"
+                  editable={true}
+                />
+              )
+            ) : (
+              /* View Mode - Always render as Rich Text */
+              content ? (
+                <RichTextEditor
+                  content={content}
+                  onChange={() => {}}
+                  placeholder=""
+                  editable={false}
+                />
               ) : (
                 <div className="text-gray-400 text-center py-12">
                   <p>No content yet.</p>
@@ -201,9 +240,9 @@ export function PageModal({ page, pages, onClose }: PageModalProps) {
                     Click to start editing
                   </button>
                 </div>
-              )}
-            </>
-          )}
+              )
+            )}
+          </div>
         </div>
 
         {/* Footer */}

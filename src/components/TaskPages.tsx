@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { TaskPage } from '../types'
 import {
   useTaskPages,
@@ -8,6 +6,8 @@ import {
   useUpdateTaskPage,
   useDeleteTaskPage,
 } from '../hooks/useTaskPages'
+import { RichTextEditor } from './RichTextEditor'
+import { MarkdownEditor } from './MarkdownEditor'
 
 interface TaskPagesProps {
   taskId: string
@@ -18,6 +18,9 @@ export function TaskPages({ taskId }: TaskPagesProps) {
   const [viewingPageId, setViewingPageId] = useState<string | null>(null)
   const [newPageTitle, setNewPageTitle] = useState('')
   const [editingContent, setEditingContent] = useState<Record<string, string>>({})
+  const [renamingPageId, setRenamingPageId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [editorMode, setEditorMode] = useState<'rich' | 'markdown'>('rich')
 
   const { data: pages = [], isLoading } = useTaskPages(taskId)
   const createPage = useCreateTaskPage()
@@ -69,6 +72,28 @@ export function TaskPages({ taskId }: TaskPagesProps) {
     setEditingContent({ [page.id]: page.content || '' })
   }
 
+  const handleRenameStart = (page: TaskPage) => {
+    setRenamingPageId(page.id)
+    setRenameValue(page.title)
+  }
+
+  const handleRenameSubmit = (pageId: string) => {
+    if (renameValue.trim()) {
+      updatePage.mutate({
+        id: pageId,
+        taskId,
+        title: renameValue.trim(),
+      })
+    }
+    setRenamingPageId(null)
+    setRenameValue('')
+  }
+
+  const handleRenameCancel = () => {
+    setRenamingPageId(null)
+    setRenameValue('')
+  }
+
   if (isLoading) {
     return <div className="text-sm text-gray-500">Loading pages...</div>
   }
@@ -88,18 +113,63 @@ export function TaskPages({ taskId }: TaskPagesProps) {
       {pages.map((page) => {
         const isEditing = editingPageId === page.id
         const isViewing = viewingPageId === page.id
+        const isRenaming = renamingPageId === page.id
 
         return (
           <div key={page.id} className="border border-gray-200 rounded-lg overflow-hidden">
             {/* Page Header */}
             <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-1">
                 <span className="text-lg">📄</span>
-                <h3 className="font-semibold text-gray-900">{page.title}</h3>
+                {isRenaming ? (
+                  <input
+                    type="text"
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleRenameSubmit(page.id)
+                      if (e.key === 'Escape') handleRenameCancel()
+                    }}
+                    onBlur={() => handleRenameSubmit(page.id)}
+                    autoFocus
+                    className="flex-1 px-2 py-1 text-sm border border-blue-500 rounded focus:outline-none"
+                  />
+                ) : (
+                  <h3
+                    className="font-semibold text-gray-900 cursor-pointer hover:text-blue-600"
+                    onDoubleClick={() => handleRenameStart(page)}
+                  >
+                    {page.title}
+                  </h3>
+                )}
               </div>
               <div className="flex gap-2">
                 {isEditing ? (
                   <>
+                    {/* Editor Mode Toggle */}
+                    <div className="flex items-center gap-1 bg-gray-100 rounded p-0.5 mr-2">
+                      <button
+                        onClick={() => setEditorMode('rich')}
+                        className={`px-2 py-1 rounded text-xs font-medium transition ${
+                          editorMode === 'rich'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        📝 Rich
+                      </button>
+                      <button
+                        onClick={() => setEditorMode('markdown')}
+                        className={`px-2 py-1 rounded text-xs font-medium transition ${
+                          editorMode === 'markdown'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        🔤 MD
+                      </button>
+                    </div>
+
                     <button
                       onClick={() => handleSavePage(page)}
                       className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -118,6 +188,17 @@ export function TaskPages({ taskId }: TaskPagesProps) {
                   </>
                 ) : (
                   <>
+                    {/* Rename Button */}
+                    <button
+                      onClick={() => handleRenameStart(page)}
+                      className="p-1.5 text-gray-600 hover:bg-blue-100 hover:text-blue-600 rounded"
+                      title="Rename"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+
                     {/* View/Edit Toggle */}
                     {isViewing && (
                       <button
@@ -153,38 +234,36 @@ export function TaskPages({ taskId }: TaskPagesProps) {
             </div>
 
             {/* Page Content */}
-            <div className="p-4">
+            <div className="min-h-[200px]">
               {isEditing ? (
-                <textarea
-                  value={editingContent[page.id] || page.content || ''}
-                  onChange={(e) => setEditingContent({ ...editingContent, [page.id]: e.target.value })}
-                  placeholder="Start writing... (Markdown supported)"
-                  className="w-full min-h-[300px] px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm resize-y"
-                />
+                editorMode === 'markdown' ? (
+                  /* Markdown Mode - Textarea */
+                  <textarea
+                    value={editingContent[page.id] || page.content || ''}
+                    onChange={(e) => setEditingContent({ ...editingContent, [page.id]: e.target.value })}
+                    className="w-full min-h-[300px] p-4 text-base text-gray-700 border-none outline-none focus:ring-0 resize-none font-mono"
+                    placeholder="Start writing... (Markdown supported: **bold**, *italic*, # heading, etc.)"
+                  />
+                ) : (
+                  /* Rich Text Mode - WYSIWYG Editor */
+                  <RichTextEditor
+                    content={editingContent[page.id] || page.content || ''}
+                    onChange={(newContent) => setEditingContent({ ...editingContent, [page.id]: newContent })}
+                    placeholder="Start writing..."
+                    editable={true}
+                  />
+                )
               ) : isViewing ? (
-                <div className="prose prose-sm prose-slate max-w-none">
-                  {page.content ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {page.content}
-                    </ReactMarkdown>
-                  ) : (
-                    <div className="text-gray-400 text-center py-8">
-                      <p className="text-sm">No content yet.</p>
-                      <button
-                        onClick={() => {
-                          setViewingPageId(null)
-                          handleEditClick(page)
-                        }}
-                        className="mt-2 text-blue-600 hover:text-blue-700 text-sm"
-                      >
-                        Click to start editing
-                      </button>
-                    </div>
-                  )}
-                </div>
+                /* View Mode - Always render as Rich Text */
+                <RichTextEditor
+                  content={page.content || ''}
+                  onChange={() => {}}
+                  placeholder=""
+                  editable={false}
+                />
               ) : (
-                <div className="text-sm text-gray-500 py-2">
-                  Click <span className="font-semibold text-blue-600 cursor-pointer" onClick={() => setViewingPageId(page.id)}>View</span> to read content or <span className="font-semibold text-blue-600 cursor-pointer" onClick={() => handleEditClick(page)}>Edit</span> to make changes.
+                <div className="text-sm text-gray-500 py-8 px-4 text-center">
+                  <p>Double-click title to rename, or click <span className="font-semibold text-blue-600 cursor-pointer" onClick={() => setViewingPageId(page.id)}>View</span> to read content.</p>
                 </div>
               )}
             </div>
