@@ -121,8 +121,7 @@ export interface TaskPage {
   id: string
   task_id: string
   title: string
-  content: string | null
-  content_type: 'html' | 'json'
+  content: string | null // Markdown content
   order_index: number
   created_by: string | null
   created_at: string

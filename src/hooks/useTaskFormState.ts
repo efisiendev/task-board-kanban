@@ -75,7 +75,8 @@ export function useTaskFormState({ initialData, id, lastEditTimeRef }: UseTaskFo
         setActualTime('')
       }
     }
-  }, [initialData, id, lastEditTimeRef])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, initialData?.title, initialData?.description, initialData?.priority])
 
   // Label management
   const handleAddLabel = (onSave?: () => void) => {

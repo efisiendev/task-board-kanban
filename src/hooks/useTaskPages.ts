@@ -71,7 +71,6 @@ export function useCreateTaskPage() {
           task_id: taskId,
           title,
           content: content || '',
-          content_type: 'text',
           order_index: orderIndex,
           created_by: user?.id || null,
         })
