@@ -17,7 +17,7 @@ import BoardStatusManager from '../components/BoardStatusManager'
 import { FilterSidebar, TaskFilters } from '../components/FilterSidebar'
 import { Sidebar } from '../components/Sidebar'
 import { Task, BoardPage } from '../types'
-import { useBoardPages, useCreateBoardPage, useDeleteBoardPage } from '../hooks/useBoardPages'
+import { useBoardPages, useCreateBoardPage, useUpdateBoardPage, useDeleteBoardPage } from '../hooks/useBoardPages'
 
 type ViewType = 'kanban' | 'table' | 'list' | 'calendar'
 
@@ -42,6 +42,7 @@ export default function Board() {
   const deleteTaskMutation = useDeleteTask()
   const { data: pages = [] } = useBoardPages(boardId!)
   const createPageMutation = useCreateBoardPage()
+  const updatePageMutation = useUpdateBoardPage()
   const deletePageMutation = useDeleteBoardPage()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -410,12 +411,12 @@ export default function Board() {
                           console.error('Failed to create page:', error)
                         }
                       }}
-                      onCreateFolder={async (parentId) => {
+                      onCreateFolder={async (parentId, folderName) => {
                         try {
                           await createPageMutation.mutateAsync({
                             board_id: boardId!,
                             parent_id: parentId,
-                            title: 'New Folder',
+                            title: folderName,
                             type: 'folder',
                           })
                         } catch (error) {
@@ -430,6 +431,17 @@ export default function Board() {
                           })
                         } catch (error) {
                           console.error('Failed to delete page:', error)
+                        }
+                      }}
+                      onRenamePage={async (pageId, newTitle) => {
+                        try {
+                          await updatePageMutation.mutateAsync({
+                            id: pageId,
+                            board_id: boardId!,
+                            title: newTitle,
+                          })
+                        } catch (error) {
+                          console.error('Failed to rename page:', error)
                         }
                       }}
                     />
