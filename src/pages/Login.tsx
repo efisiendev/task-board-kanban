@@ -24,7 +24,7 @@ export default function Login() {
         const { error } = await signIn(email, password)
         if (error) throw error
       }
-      navigate('/boards')
+      navigate('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
