@@ -2,8 +2,13 @@ export interface Board {
   id: string
   user_id: string
   name: string
+  description: string | null
+  color: string
   created_at: string
   updated_at: string
+  user_profiles?: {
+    email: string
+  }
 }
 
 export type BoardMemberRole = 'owner' | 'admin' | 'member' | 'viewer'

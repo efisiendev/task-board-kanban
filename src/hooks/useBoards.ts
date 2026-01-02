@@ -15,10 +15,14 @@ export function useBoards() {
       // Query all boards - RLS will automatically filter to show:
       // 1. Boards owned by user (user_id = auth.uid())
       // 2. Boards where user is a member (via board_members table)
+      // Join with user_profiles to get owner email
       const { data, error } = await supabase
         .from('boards')
-        .select('*')
-        .order('created_at', { ascending: false })
+        .select(`
+          *,
+          user_profiles!boards_user_id_fkey(email)
+        `)
+        .order('updated_at', { ascending: false })
 
       if (error) throw error
       return data as Board[]
@@ -77,13 +81,18 @@ export function useCreateBoard() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async (params: { name: string; description?: string; color: string }) => {
       const { data: { user }, error: authError } = await supabase.auth.getUser()
       if (authError || !user) throw new Error('Not authenticated')
 
       const { data, error } = await supabase
         .from('boards')
-        .insert({ name, user_id: user.id })
+        .insert({ 
+          name: params.name, 
+          description: params.description || null,
+          color: params.color, 
+          user_id: user.id 
+        })
         .select()
         .single()
 
@@ -100,10 +109,20 @@ export function useUpdateBoard() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+    mutationFn: async ({ id, name, description, color }: { 
+      id: string
+      name?: string
+      description?: string | null
+      color?: string
+    }) => {
+      const updateData: Partial<Board> = {}
+      if (name !== undefined) updateData.name = name
+      if (description !== undefined) updateData.description = description
+      if (color !== undefined) updateData.color = color
+
       const { data, error } = await supabase
         .from('boards')
-        .update({ name })
+        .update(updateData)
         .eq('id', id)
         .select()
         .single()
