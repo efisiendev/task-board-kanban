@@ -75,7 +75,7 @@ export function Sidebar({ isOpen, onClose, currentBoardId }: SidebarProps) {
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2 px-2">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                My Boards
+                My Projects
               </h3>
               <button
                 onClick={() => handleNavigate('/dashboard')}
@@ -86,7 +86,7 @@ export function Sidebar({ isOpen, onClose, currentBoardId }: SidebarProps) {
             </div>
             <nav className="space-y-1">
               {boards.length === 0 ? (
-                <p className="text-sm text-gray-400 px-2 py-2">No boards yet</p>
+                <p className="text-sm text-gray-400 px-2 py-2">No projects yet</p>
               ) : (
                 boards.map((board: Board) => (
                   <button
@@ -115,7 +115,7 @@ export function Sidebar({ isOpen, onClose, currentBoardId }: SidebarProps) {
               className="w-full px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
             >
               <span className="text-lg">+</span>
-              New Board
+              New Project
             </button>
           </div>
         </div>
