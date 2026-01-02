@@ -47,3 +47,35 @@ export const DEFAULTS = {
   boardColor: COLORS.primary,
   eventColor: COLORS.primary,
 } as const
+
+export const PRIORITY_COLORS = {
+  low: 'bg-blue-200 text-blue-900',
+  medium: 'bg-yellow-200 text-yellow-900',
+  high: 'bg-orange-200 text-orange-900',
+  urgent: 'bg-red-200 text-red-900',
+} as const
+
+export const PRIORITY_COLORS_TABLE = {
+  low: 'bg-blue-100 text-blue-800',
+  medium: 'bg-yellow-100 text-yellow-800',
+  high: 'bg-orange-100 text-orange-800',
+  urgent: 'bg-red-100 text-red-800',
+} as const
+
+export const PRIORITY_EMOJI = {
+  low: '🔵',
+  medium: '🟡',
+  high: '🟠',
+  urgent: '🔴',
+} as const
+
+export const STATUS_COLOR_OPTIONS = [
+  { value: 'gray', label: 'Gray', class: 'bg-gray-500' },
+  { value: 'blue', label: 'Blue', class: 'bg-blue-500' },
+  { value: 'green', label: 'Green', class: 'bg-green-500' },
+  { value: 'yellow', label: 'Yellow', class: 'bg-yellow-500' },
+  { value: 'orange', label: 'Orange', class: 'bg-orange-500' },
+  { value: 'red', label: 'Red', class: 'bg-red-500' },
+  { value: 'purple', label: 'Purple', class: 'bg-purple-500' },
+  { value: 'pink', label: 'Pink', class: 'bg-pink-500' },
+] as const
