@@ -84,7 +84,7 @@ export default function KanbanBoard({ tasks, statuses, userProfiles, onTaskClick
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
       <div className="overflow-x-auto pb-4">
-        <div className="flex gap-6" style={{ minWidth: `${statuses.length * 320}px` }}>
+        <div className="flex gap-6 items-start" style={{ minWidth: `${statuses.length * 320}px` }}>
           {statuses.map((status) => (
             <KanbanColumn
               key={status.id}

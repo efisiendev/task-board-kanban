@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { Task, UserProfile } from '../types'
 import TaskCard from './TaskCard'
+import { ColumnSortMenu, SortOption } from './ColumnSortMenu'
 
 interface KanbanColumnProps {
   statusId: string
@@ -38,6 +39,14 @@ const BADGE_COLORS: Record<string, string> = {
   pink: 'bg-pink-100 text-pink-800 border border-pink-200',
 }
 
+// Priority order mapping for sorting
+const PRIORITY_ORDER: Record<string, number> = {
+  'urgent': 0,
+  'high': 1,
+  'medium': 2,
+  'low': 3,
+}
+
 export default function KanbanColumn({
   statusId,
   statusLabel,
@@ -51,28 +60,56 @@ export default function KanbanColumn({
   simplified = false,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: statusId, data: { statusId } })
+  const [sortBy, setSortBy] = useState<SortOption>('order')
 
   const bgColor = COLOR_CLASSES[statusColor] || 'bg-gray-100'
   const badgeColor = BADGE_COLORS[statusColor] || 'bg-gray-600 text-white'
 
   // Memoize sorted tasks to avoid sorting on every render
-  const sortedTasks = useMemo(
-    () => [...tasks].sort((a, b) => a.order_index - b.order_index),
-    [tasks]
-  )
+  const sortedTasks = useMemo(() => {
+    const sorted = [...tasks]
+
+    if (sortBy === 'priority') {
+      sorted.sort((a, b) => {
+        const aPriority = a.priority ? PRIORITY_ORDER[a.priority.toLowerCase()] ?? 999 : 999
+        const bPriority = b.priority ? PRIORITY_ORDER[b.priority.toLowerCase()] ?? 999 : 999
+        if (aPriority !== bPriority) return aPriority - bPriority
+        return a.order_index - b.order_index // Secondary sort by order
+      })
+    } else if (sortBy === 'due_date') {
+      sorted.sort((a, b) => {
+        if (!a.due_date && !b.due_date) return a.order_index - b.order_index
+        if (!a.due_date) return 1
+        if (!b.due_date) return -1
+        const dateCompare = new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+        if (dateCompare !== 0) return dateCompare
+        return a.order_index - b.order_index
+      })
+    } else {
+      // Default: sort by order_index
+      sorted.sort((a, b) => a.order_index - b.order_index)
+    }
+
+    return sorted
+  }, [tasks, sortBy])
 
   return (
-    <div className={`flex flex-col ${bgColor} rounded-lg p-4 min-h-96 w-80 flex-shrink-0 transition ${isOver ? 'ring-2 ring-blue-400' : ''}`}>
-      <div className="mb-4 flex items-center justify-between">
+    <div className={`flex flex-col ${bgColor} rounded-lg p-4 w-80 flex-shrink-0 transition ${isOver ? 'ring-2 ring-blue-400' : ''}`}>
+      {/* Header with sort button */}
+      <div className="mb-3 flex items-center justify-between">
         <span className={`px-3 py-1.5 rounded-lg font-semibold text-sm ${badgeColor}`}>
           {statusLabel}
         </span>
-        <span className="text-gray-600 text-sm font-medium">
-          {tasks.length}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-600 text-sm font-medium">
+            {tasks.length}
+          </span>
+          <ColumnSortMenu sortBy={sortBy} onSortChange={setSortBy} />
+        </div>
       </div>
 
-      <div ref={setNodeRef} className="flex-1 space-y-2 overflow-y-auto">
+      {/* Tasks list - only use flex-1 if there are tasks */}
+      <div ref={setNodeRef} className={`space-y-2 overflow-y-auto ${tasks.length > 0 ? 'flex-1' : ''}`}>
         {sortedTasks.map((task) => (
             <TaskCard
               key={task.id}
