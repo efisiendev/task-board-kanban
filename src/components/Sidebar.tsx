@@ -31,10 +31,10 @@ export function Sidebar({ isOpen, onClose, currentBoardId }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile Backdrop */}
+      {/* Backdrop - Close on click outside */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-30 z-40 md:hidden transition-opacity"
+          className="fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity"
           onClick={onClose}
         />
       )}
@@ -90,16 +90,10 @@ export function Sidebar({ isOpen, onClose, currentBoardId }: SidebarProps) {
 
           {/* Boards Section */}
           <div className="mb-4">
-            <div className="flex items-center justify-between mb-2 px-2">
+            <div className="mb-2 px-2">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 My Projects
               </h3>
-              <button
-                onClick={() => handleNavigate('/dashboard')}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-              >
-                View All
-              </button>
             </div>
             <nav className="space-y-1">
               {boards.length === 0 ? (

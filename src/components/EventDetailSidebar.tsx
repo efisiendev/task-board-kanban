@@ -6,6 +6,7 @@ import {
   useDeleteCalendarEvent,
 } from '../hooks/useCalendarEvents'
 import { useBoards } from '../hooks/useBoards'
+import { useAuth } from '../hooks/useAuth'
 import { DEFAULTS } from '../constants/theme'
 import { CloseIcon } from './ui/Icons'
 import { ColorPicker } from './ui/ColorPicker'
@@ -37,9 +38,13 @@ export function EventDetailSidebar({
   const [boardId, setBoardId] = useState<string>('')
 
   const { data: boards = [] } = useBoards()
+  const { user } = useAuth()
   const createEvent = useCreateCalendarEvent()
   const updateEvent = useUpdateCalendarEvent()
   const deleteEvent = useDeleteCalendarEvent()
+
+  // Check if current user is owner of the event
+  const isOwner = event ? event.created_by === user?.id : true
 
   // Initialize form when creating new event
   useEffect(() => {
@@ -173,11 +178,19 @@ export function EventDetailSidebar({
   console.log('📅 Date events for', logDateStr, ':', dateEvents.length, 'events')
 
   return (
-    <div className="w-96 bg-white border-l border-gray-200 flex flex-col h-full">
+    <>
+      {/* Backdrop overlay */}
+      <div
+        className="fixed inset-0 bg-black bg-opacity-20 z-40"
+        onClick={onClose}
+      />
+      
+      {/* Sidebar */}
+      <div className="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 flex flex-col">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
-          {isCreating ? 'New Event' : event ? 'Edit Event' : 'Events'}
+          {isCreating ? 'New Event' : event ? (isOwner ? 'Edit Event' : 'View Event') : 'Events'}
         </h2>
         <button
           onClick={onClose}
@@ -202,7 +215,8 @@ export function EventDetailSidebar({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Event title..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                disabled={!!(event && !isOwner)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -214,7 +228,8 @@ export function EventDetailSidebar({
               <select
                 value={coordinationType}
                 onChange={(e) => setCoordinationType(e.target.value as CalendarEventCoordinationType | '')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                disabled={!!(event && !isOwner)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
                 <option value="">Select type...</option>
                 <option value="synchronous">Synchronous</option>
@@ -230,7 +245,8 @@ export function EventDetailSidebar({
               <select
                 value={boardId}
                 onChange={(e) => setBoardId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                disabled={!!(event && !isOwner)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
                 <option value="">🌐 Public (visible to all users)</option>
                 {boards.map((board) => (
@@ -261,7 +277,8 @@ export function EventDetailSidebar({
                       setEndDate(newStartDate)
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  disabled={!!(event && !isOwner)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
               <div>
@@ -273,7 +290,8 @@ export function EventDetailSidebar({
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                   min={startDate}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  disabled={!!(event && !isOwner)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -283,7 +301,7 @@ export function EventDetailSidebar({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Color
               </label>
-              <ColorPicker value={color} onChange={setColor} size="sm" />
+              <ColorPicker value={color} onChange={setColor} size="sm" disabled={!!(event && !isOwner)} />
             </div>
 
             {/* Description (Isi) */}
@@ -296,26 +314,30 @@ export function EventDetailSidebar({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Event details..."
                 rows={8}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                disabled={!!(event && !isOwner)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2 pt-4">
-              {event && (
-                <Button onClick={handleDelete} variant="danger" className="flex-1">
-                  Delete
+            {/* Actions */}
+            {isOwner && (
+              <div className="flex gap-2 pt-4">
+                {event && (
+                  <Button onClick={handleDelete} variant="danger" className="flex-1">
+                    Delete
+                  </Button>
+                )}
+                <Button
+                  onClick={handleSave}
+                  disabled={!title.trim()}
+                  variant="primary"
+                  className="flex-1"
+                >
+                  {isCreating ? 'Create' : 'Save'}
                 </Button>
-              )}
-              <Button
-                onClick={handleSave}
-                disabled={!title.trim()}
-                variant="primary"
-                className="flex-1"
-              >
-                {isCreating ? 'Create' : 'Save'}
-              </Button>
-            </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -475,6 +497,7 @@ export function EventDetailSidebar({
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   )
 }
