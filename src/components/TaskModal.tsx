@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react'
 import { Task } from '../types'
 import { supabase } from '../lib/supabase'
-import { SubTaskList } from './SubTaskList'
 import { TaskComments } from './TaskComments'
 import { ActivityLog } from './ActivityLog'
+import { SubTaskList } from './SubTaskList'
 import { TaskPages } from './TaskPages'
 import { TaskRelations } from './TaskRelations'
 import { useTaskFormState, TaskFormData } from '../hooks/useTaskFormState'
 import { useAutoSave } from '../hooks/useAutoSave'
-import { PropertyRow, PriorityField, DateField, TimeField, AssigneeField, LabelsField } from './shared'
+import { PropertyRow, PriorityField, DateField, TimeField, AssigneeField, LabelsField, AddPropertyButton, AdditionalProperty } from './shared'
+import { useTaskChecklist } from '../hooks/useTaskChecklist'
+import { useTaskPages } from '../hooks/useTaskPages'
+import { useTaskRelations } from '../hooks/useTaskRelations'
 
 interface TaskModalProps {
   task: Task | null
@@ -29,9 +32,27 @@ export default function TaskModal({
   onUpdate,
   onDelete,
 }: TaskModalProps) {
-  const [activeTab, setActiveTab] = useState<'subtask' | 'pages' | 'relations'>('subtask')
   const [editingProperty, setEditingProperty] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [visibleProperties, setVisibleProperties] = useState<AdditionalProperty[]>([])
+
+  // Fetch data to determine which properties have content
+  const { data: subtasks = [] } = useTaskChecklist(task?.id || '')
+  const { data: pages = [] } = useTaskPages(task?.id || '')
+  const { data: relationsData } = useTaskRelations(task?.id || '')
+  const { outgoing = [], incoming = [] } = relationsData || {}
+
+  // Auto-show properties that have content
+  useEffect(() => {
+    if (!task) return
+
+    const autoVisible: AdditionalProperty[] = []
+    if (subtasks.length > 0) autoVisible.push('subtasks')
+    if (pages.length > 0) autoVisible.push('pages')
+    if (outgoing.length > 0 || incoming.length > 0) autoVisible.push('relations')
+
+    setVisibleProperties(autoVisible)
+  }, [task, subtasks.length, pages.length, outgoing.length, incoming.length])
 
   // Auto-save function for edit mode
   const handleAutoSave = async (data: TaskFormData) => {
@@ -299,11 +320,13 @@ export default function TaskModal({
                   onEdit={() => setEditingProperty('labels')}
                   onLabelInputChange={setLabelInput}
                   onAddLabel={() => {
+                    lastEditTimeRef.current = Date.now()
                     addLabel(() => {
                       if (task) immediateAutoSave(getFormData())
                     })
                   }}
                   onRemoveLabel={(label) => {
+                    lastEditTimeRef.current = Date.now()
                     removeLabel(label, () => {
                       if (task) immediateAutoSave(getFormData())
                     })
@@ -311,63 +334,61 @@ export default function TaskModal({
                   onBlur={() => setEditingProperty(null)}
                 />
               </PropertyRow>
+
+              {/* Add Property Button - only show for existing tasks */}
+              {task && (
+                <AddPropertyButton
+                  onAddProperty={(property) => {
+                    if (!visibleProperties.includes(property)) {
+                      setVisibleProperties([...visibleProperties, property])
+                      // Open appropriate modal/form to create first item
+                      if (property === 'subtasks') {
+                        // Will be handled by SubTaskList component
+                      } else if (property === 'pages') {
+                        // Will be handled by TaskPages component
+                      } else if (property === 'relations') {
+                        // Will be handled by TaskRelations component
+                      }
+                    }
+                  }}
+                  availableProperties={
+                    (['subtasks', 'pages', 'relations'] as AdditionalProperty[]).filter(
+                      (p) => !visibleProperties.includes(p)
+                    )
+                  }
+                />
+              )}
+
             </div>
           </div>
+
+          {/* Full Sections - only show when they have content or user added them */}
+          {task && visibleProperties.includes('subtasks') && (
+            <div className="border-t border-gray-200 pt-4 mt-4">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">☑️ Subtasks</h3>
+              <SubTaskList taskId={task.id} boardId={task.board_id} />
+            </div>
+          )}
+
+          {task && visibleProperties.includes('pages') && (
+            <div className="border-t border-gray-200 pt-4 mt-4">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">📄 Pages</h3>
+              <TaskPages taskId={task.id} />
+            </div>
+          )}
+
+          {task && visibleProperties.includes('relations') && (
+            <div className="border-t border-gray-200 pt-4 mt-4">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">🔗 Relations</h3>
+              <TaskRelations taskId={task.id} boardId={task.board_id} />
+            </div>
+          )}
 
           {/* Comments Section - Right after properties */}
           {task && (
             <div className="border-t border-gray-200 pt-4 mt-4">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">💬 Comments</h3>
               <TaskComments taskId={task.id} />
-            </div>
-          )}
-
-          {/* Tabs for Checklist & Pages - only show when editing existing task */}
-          {task && (
-            <div className="border-t border-gray-200 pt-4 mt-4">
-              {/* Tab Headers */}
-              <div className="flex gap-4 border-b border-gray-200 mb-4">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('subtask')}
-                  className={`pb-2 px-1 text-sm font-medium border-b-2 transition ${
-                    activeTab === 'subtask'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Subtask
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('pages')}
-                  className={`pb-2 px-1 text-sm font-medium border-b-2 transition ${
-                    activeTab === 'pages'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Pages
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('relations')}
-                  className={`pb-2 px-1 text-sm font-medium border-b-2 transition ${
-                    activeTab === 'relations'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Relations
-                </button>
-              </div>
-
-              {/* Tab Content */}
-              <div>
-                {activeTab === 'subtask' && <SubTaskList taskId={task.id} boardId={task.board_id} />}
-                {activeTab === 'pages' && <TaskPages taskId={task.id} />}
-                {activeTab === 'relations' && <TaskRelations taskId={task.id} boardId={task.board_id} />}
-              </div>
             </div>
           )}
 

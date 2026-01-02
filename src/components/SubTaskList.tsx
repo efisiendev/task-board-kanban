@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   DndContext,
   DragEndEvent,
@@ -6,10 +6,8 @@ import {
   useSensor,
   useSensors,
   closestCorners,
-  useDroppable,
-  useDraggable,
 } from '@dnd-kit/core'
-import { TaskChecklistItem } from '../types'
+import { TaskChecklistItem, Task } from '../types'
 import {
   useTaskChecklist,
   useUpdateChecklistItem,
@@ -17,180 +15,12 @@ import {
 } from '../hooks/useTaskChecklist'
 import { useBoardStatuses } from '../hooks/useBoardStatuses'
 import { SubtaskModal } from './SubtaskModal'
+import { useBatchUserProfiles } from '../hooks/useBatchUserProfiles'
+import KanbanColumn from './KanbanColumn'
 
 interface SubTaskListProps {
   taskId: string
   boardId: string
-}
-
-interface SortableSubtaskProps {
-  item: TaskChecklistItem
-  onDelete: (id: string) => void
-  onEdit: (item: TaskChecklistItem) => void
-}
-
-function SortableSubtask({ item, onDelete, onEdit }: SortableSubtaskProps) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: item.id,
-  })
-
-  const priorityColors = {
-    low: 'bg-blue-100 text-blue-800',
-    medium: 'bg-yellow-100 text-yellow-800',
-    high: 'bg-orange-100 text-orange-800',
-    urgent: 'bg-red-100 text-red-800',
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-
-    if (date.toDateString() === today.toDateString()) return 'Today'
-    if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow'
-
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
-
-  const isOverdue = item.due_date && new Date(item.due_date) < new Date()
-
-  return (
-    <div
-      ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      onClick={(e) => {
-        // Only trigger edit if not clicking delete button
-        const target = e.target as HTMLElement
-        if (!target.closest('button')) {
-          onEdit(item)
-        }
-      }}
-      className={`bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:shadow-md transition-shadow group ${
-        isDragging ? 'opacity-50' : ''
-      }`}
-    >
-      {/* Title and Delete */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <h4 className="font-medium text-gray-900 text-sm flex-1">{item.title}</h4>
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            if (confirm('Delete this subtask?')) {
-              onDelete(item.id)
-            }
-          }}
-          className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 transition-opacity"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Labels */}
-      {item.labels && item.labels.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-2">
-          {item.labels.slice(0, 3).map((label, i) => (
-            <span
-              key={i}
-              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700"
-            >
-              {label}
-            </span>
-          ))}
-          {item.labels.length > 3 && (
-            <span className="text-xs text-gray-500">+{item.labels.length - 3}</span>
-          )}
-        </div>
-      )}
-
-      {/* Footer: Priority, Due Date, Assignee */}
-      <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2">
-          {/* Priority */}
-          {item.priority && (
-            <span className={`px-2 py-0.5 rounded-full ${priorityColors[item.priority]}`}>
-              {item.priority}
-            </span>
-          )}
-
-          {/* Due Date */}
-          {item.due_date && (
-            <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              {formatDate(item.due_date)}
-            </span>
-          )}
-
-          {/* Estimated Time */}
-          {item.estimated_time && (
-            <span className="text-gray-500">
-              {item.estimated_time}m
-            </span>
-          )}
-        </div>
-
-        {/* Assignee - just initials for now */}
-        {item.assigned_to && (
-          <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium">
-            ?
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-interface DroppableColumnProps {
-  statusId: string
-  statusName: string
-  statusColor: string
-  items: TaskChecklistItem[]
-  onDelete: (id: string) => void
-  onEdit: (item: TaskChecklistItem) => void
-}
-
-function DroppableColumn({ statusId, statusName, statusColor, items, onDelete, onEdit }: DroppableColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: statusId,
-  })
-
-  const colorClass = statusColor.startsWith('bg-') ? statusColor : ''
-  const colorStyle = statusColor.startsWith('#') ? { backgroundColor: statusColor } : {}
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`bg-gray-50 rounded-lg p-3 min-h-[200px] ${isOver ? 'ring-2 ring-blue-400' : ''}`}
-    >
-      <div className="flex items-center gap-2 mb-3">
-        <div className={`w-3 h-3 rounded-full ${colorClass}`} style={colorStyle} />
-        <h4 className="font-medium text-sm text-gray-700">{statusName}</h4>
-        <span className="text-xs text-gray-500">({items.length})</span>
-      </div>
-
-      <div className="space-y-2">
-        {items
-          .sort((a, b) => a.order_index - b.order_index)
-          .map((item) => (
-            <SortableSubtask key={item.id} item={item} onDelete={onDelete} onEdit={onEdit} />
-          ))}
-
-        {items.length === 0 && (
-          <div className="text-xs text-gray-400 text-center py-4">Drop here</div>
-        )}
-      </div>
-    </div>
-  )
 }
 
 export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
@@ -201,6 +31,10 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
   const { data: boardStatuses = [] } = useBoardStatuses(boardId)
   const updateItem = useUpdateChecklistItem()
   const deleteItem = useDeleteChecklistItem()
+
+  // Batch fetch all user profiles for subtasks (prevents N+1 queries)
+  const assigneeIds = useMemo(() => items.map(i => i.assigned_to), [items])
+  const { data: userProfiles = [] } = useBatchUserProfiles(assigneeIds)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -223,13 +57,34 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
     )
   }
 
+  // Convert checklist items to Task format for KanbanColumn compatibility
+  const convertToTask = (item: TaskChecklistItem): Task => ({
+    id: item.id,
+    title: item.title,
+    description: null, // Subtasks don't have description in schema
+    status_id: item.status_id,
+    priority: item.priority || null,
+    assigned_to: item.assigned_to || null,
+    due_date: item.due_date || null,
+    start_date: null, // Subtasks don't have start_date in schema
+    labels: item.labels || [],
+    estimated_time: item.estimated_time || null,
+    actual_time: item.actual_time || null,
+    order_index: item.order_index,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+    board_id: boardId,
+    created_by: null, // Not needed for display
+    board_status: undefined, // Will be filled by rendering
+  })
+
   // Group items by status_id
-  const itemsByStatusId = items.reduce((acc, item) => {
+  const tasksByStatusId = items.reduce((acc, item) => {
     const statusId = item.status_id
     if (!acc[statusId]) acc[statusId] = []
-    acc[statusId].push(item)
+    acc[statusId].push(convertToTask(item))
     return acc
-  }, {} as Record<string, TaskChecklistItem[]>)
+  }, {} as Record<string, Task[]>)
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -306,13 +161,19 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
     }
   }
 
-  const handleDelete = (id: string) => {
-    deleteItem.mutate({ id, taskId })
+  const handleDelete = (taskId: string) => {
+    if (confirm('Delete this subtask?')) {
+      deleteItem.mutate({ id: taskId, taskId: taskId })
+    }
   }
 
-  const handleEdit = (item: TaskChecklistItem) => {
-    setSelectedSubtask(item)
-    setIsModalOpen(true)
+  const handleTaskClick = (task: Task) => {
+    // Find original checklist item
+    const item = items.find(i => i.id === task.id)
+    if (item) {
+      setSelectedSubtask(item)
+      setIsModalOpen(true)
+    }
   }
 
   const handleModalSave = async () => {
@@ -331,18 +192,22 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
         collisionDetection={closestCorners}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-3 gap-4">
-          {boardStatuses.map((status) => (
-            <DroppableColumn
-              key={status.id}
-              statusId={status.id}
-              statusName={status.name}
-              statusColor={status.color}
-              items={itemsByStatusId[status.id] || []}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-            />
-          ))}
+        <div className="overflow-x-auto pb-4">
+          <div className="flex gap-4" style={{ minWidth: `${boardStatuses.length * 320}px` }}>
+            {boardStatuses.map((status) => (
+              <KanbanColumn
+                key={status.id}
+                statusId={status.id}
+                statusLabel={status.name}
+                statusColor={status.color}
+                tasks={tasksByStatusId[status.id] || []}
+                userProfiles={userProfiles}
+                onTaskClick={handleTaskClick}
+                onDeleteTask={handleDelete}
+                simplified={true}
+              />
+            ))}
+          </div>
         </div>
 
       </DndContext>

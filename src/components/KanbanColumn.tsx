@@ -10,9 +10,10 @@ interface KanbanColumnProps {
   tasks: Task[]
   userProfiles: UserProfile[]
   onTaskClick: (task: Task) => void
-  onAddTask: (statusId: string) => void
+  onAddTask?: (statusId: string) => void // Made optional for subtasks
   onDeleteTask?: (taskId: string) => void
   onQuickEditTask?: (taskId: string, newTitle: string) => void
+  simplified?: boolean // Pass to TaskCard for subtask mode
 }
 
 const COLOR_CLASSES: Record<string, string> = {
@@ -47,6 +48,7 @@ export default function KanbanColumn({
   onAddTask,
   onDeleteTask,
   onQuickEditTask,
+  simplified = false,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: statusId, data: { statusId } })
 
@@ -76,9 +78,11 @@ export default function KanbanColumn({
               key={task.id}
               task={task}
               userProfiles={userProfiles}
+              statusColor={statusColor}
               onClick={() => onTaskClick(task)}
               onDelete={onDeleteTask}
               onQuickEdit={onQuickEditTask}
+              simplified={simplified}
             />
           ))}
 
@@ -89,14 +93,16 @@ export default function KanbanColumn({
         )}
       </div>
 
-      {/* Add New Task Button */}
-      <button
-        onClick={() => onAddTask(statusId)}
-        className="mt-2 w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-white hover:border-gray-300 bg-white/30 border-2 border-dashed border-gray-300 rounded-lg transition flex items-center gap-2 group hover:shadow-sm"
-      >
-        <span className="text-lg text-gray-500 group-hover:text-blue-600">+</span>
-        <span className="group-hover:text-gray-900 font-medium">New</span>
-      </button>
+      {/* Add New Task Button - only show if onAddTask provided */}
+      {onAddTask && (
+        <button
+          onClick={() => onAddTask(statusId)}
+          className="mt-2 w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-white hover:border-gray-300 bg-white/30 border-2 border-dashed border-gray-300 rounded-lg transition flex items-center gap-2 group hover:shadow-sm"
+        >
+          <span className="text-lg text-gray-500 group-hover:text-blue-600">+</span>
+          <span className="group-hover:text-gray-900 font-medium">New</span>
+        </button>
+      )}
     </div>
   )
 }

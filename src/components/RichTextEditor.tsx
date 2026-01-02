@@ -24,6 +24,8 @@ export function RichTextEditor({ content, onChange, placeholder = 'Start writing
         heading: {
           levels: [1, 2, 3],
         },
+        // Disable link from StarterKit to avoid duplicate with our custom Link config
+        link: false,
       }),
       Link.configure({
         openOnClick: false,

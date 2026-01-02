@@ -7,19 +7,21 @@ import { useTaskChecklist } from '../hooks/useTaskChecklist'
 interface TaskCardProps {
   task: Task
   userProfiles: UserProfile[]
+  statusColor?: string // For subtask mode - to color card based on column
   onClick: () => void
   onDelete?: (taskId: string) => void
   onQuickEdit?: (taskId: string, newTitle: string) => void
+  simplified?: boolean // Simplified mode for subtasks - hide description, priority, menu
 }
 
 const priorityColors = {
-  low: 'bg-blue-100 text-blue-800',
-  medium: 'bg-yellow-100 text-yellow-800',
-  high: 'bg-orange-100 text-orange-800',
-  urgent: 'bg-red-100 text-red-800',
+  low: 'bg-blue-200 text-blue-900',
+  medium: 'bg-yellow-200 text-yellow-900',
+  high: 'bg-orange-200 text-orange-900',
+  urgent: 'bg-red-200 text-red-900',
 }
 
-export default function TaskCard({ task, userProfiles, onClick, onDelete, onQuickEdit }: TaskCardProps) {
+export default function TaskCard({ task, userProfiles, statusColor, onClick, onDelete, onQuickEdit, simplified = false }: TaskCardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
   })
@@ -30,6 +32,20 @@ export default function TaskCard({ task, userProfiles, onClick, onDelete, onQuic
   // Get assignee profile from batched data
   const assigneeProfile = useProfileFromBatch(task.assigned_to, userProfiles)
   const { data: checklistItems = [] } = useTaskChecklist(task.id)
+
+  // Card colors - lighter than column background (for simplified/subtask mode)
+  const CARD_COLORS: Record<string, string> = {
+    gray: 'bg-white',
+    blue: 'bg-blue-100',
+    green: 'bg-green-100',
+    yellow: 'bg-yellow-100',
+    orange: 'bg-orange-100',
+    red: 'bg-red-100',
+    purple: 'bg-purple-100',
+    pink: 'bg-pink-100',
+  }
+
+  const cardBg = statusColor ? (CARD_COLORS[statusColor] || 'bg-white') : 'bg-white'
 
   const handleClick = () => {
     if (!isDragging && !isEditing) {
@@ -109,7 +125,7 @@ export default function TaskCard({ task, userProfiles, onClick, onDelete, onQuic
       {...attributes}
       {...listeners}
       onClick={handleClick}
-      className={`group p-3 bg-white rounded-lg border border-gray-200 cursor-grab hover:shadow-md transition relative ${
+      className={`group p-3 ${cardBg} rounded-lg border border-gray-200 cursor-grab hover:shadow-md transition relative ${
         isDragging ? 'opacity-50 ring-2 ring-blue-500' : ''
       }`}
     >
@@ -134,7 +150,7 @@ export default function TaskCard({ task, userProfiles, onClick, onDelete, onQuic
         )}
 
         <div className="flex items-center gap-1">
-          {task.priority && (
+          {!simplified && task.priority && (
             <span
               className={`px-2 py-0.5 rounded text-xs font-medium ${priorityColors[task.priority]}`}
             >
@@ -142,7 +158,8 @@ export default function TaskCard({ task, userProfiles, onClick, onDelete, onQuic
             </span>
           )}
 
-          {/* Three-dot menu */}
+          {/* Three-dot menu - hidden in simplified mode */}
+          {!simplified && (
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={(e) => {
@@ -195,10 +212,11 @@ export default function TaskCard({ task, userProfiles, onClick, onDelete, onQuic
               </>
             )}
           </div>
+          )}
         </div>
       </div>
 
-      {task.description && (
+      {!simplified && task.description && (
         <p className="text-sm text-gray-600 mt-1 line-clamp-1">
           {task.description.split(' ').slice(0, 5).join(' ')}
           {task.description.split(' ').length > 5 && '...'}
@@ -218,9 +236,9 @@ export default function TaskCard({ task, userProfiles, onClick, onDelete, onQuic
         </div>
       )}
 
-      {/* Footer with checklist, due date and estimated time */}
-      {(hasChecklist || task.due_date || task.estimated_time) && (
-        <div className="flex items-center gap-3 mt-2 pt-2 border-t border-gray-100 text-xs text-gray-600">
+      {/* Footer with checklist, due date and estimated time - hidden in simplified mode */}
+      {!simplified && (hasChecklist || task.due_date || task.estimated_time) && (
+        <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
           {hasChecklist && (
             <span className={`flex items-center gap-1 ${checklistCompleted === checklistTotal ? 'text-green-600' : ''}`}>
               ☑️ {checklistCompleted}/{checklistTotal}

@@ -64,7 +64,11 @@ export function LabelsField({
   if (isEditing && isOpen) {
     return (
       <div ref={containerRef} className="relative">
-        <div className="absolute z-50 mt-1 w-72 bg-white rounded-lg shadow-lg border border-gray-200 p-3">
+        {/* Mobile backdrop */}
+        <div className="fixed inset-0 z-40 md:hidden" onClick={() => { setIsOpen(false); onBlur(); }} />
+
+        {/* Modal */}
+        <div className="fixed md:absolute left-1/2 top-1/2 md:left-0 md:top-auto -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 z-50 md:mt-1 w-[90vw] max-w-sm md:w-72 bg-white rounded-lg shadow-lg border border-gray-200 p-3">
           {/* Input */}
           <div className="flex gap-2 mb-3">
             <input
