@@ -68,7 +68,7 @@ export function LabelsField({
         <div className="fixed inset-0 z-40 md:hidden" onClick={() => { setIsOpen(false); onBlur(); }} />
 
         {/* Modal */}
-        <div className="fixed md:absolute left-1/2 top-1/2 md:left-0 md:top-auto -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 z-50 md:mt-1 w-[90vw] max-w-sm md:w-72 bg-white rounded-lg shadow-lg border border-gray-200 p-3">
+        <div className="fixed md:absolute left-1/2 top-1/2 md:left-0 md:top-auto -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 z-50 md:mt-1 w-[90vw] max-w-sm md:w-96 md:max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-lg border border-gray-200 p-3 md:max-h-[80vh] overflow-y-auto">
           {/* Input */}
           <div className="flex gap-2 mb-3">
             <input
@@ -78,13 +78,13 @@ export function LabelsField({
               onChange={(e) => onLabelInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type and press Enter..."
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-w-0"
             />
             <button
               type="button"
               onClick={onAddLabel}
               disabled={!labelInput.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex-shrink-0"
             >
               Add
             </button>
@@ -96,17 +96,17 @@ export function LabelsField({
               <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                 Current Labels
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 max-w-full">
                 {labels.map((label) => (
                   <span
                     key={label}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-sm font-medium group hover:bg-blue-100 transition"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-sm font-medium group hover:bg-blue-100 transition break-all"
                   >
-                    {label}
+                    <span className="break-all">{label}</span>
                     <button
                       type="button"
                       onClick={() => onRemoveLabel(label)}
-                      className="text-blue-600 hover:text-red-600 transition"
+                      className="text-blue-600 hover:text-red-600 transition flex-shrink-0"
                     >
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
