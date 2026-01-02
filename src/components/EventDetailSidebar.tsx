@@ -5,8 +5,10 @@ import {
   useUpdateCalendarEvent,
   useDeleteCalendarEvent,
 } from '../hooks/useCalendarEvents'
-import { COLOR_PALETTE, DEFAULTS } from '../constants/theme'
+import { DEFAULTS } from '../constants/theme'
 import { CloseIcon } from './ui/Icons'
+import { ColorPicker } from './ui/ColorPicker'
+import { Button } from './ui/Button'
 
 interface EventDetailSidebarProps {
   date: Date | null
@@ -190,19 +192,7 @@ export function EventDetailSidebar({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Color
               </label>
-              <div className="flex gap-2">
-                {COLOR_PALETTE.slice(0, 6).map((c) => (
-                  <button
-                    key={c.hex}
-                    onClick={() => setColor(c.hex)}
-                    className={`w-8 h-8 rounded-full transition ${
-                      color === c.hex ? 'ring-2 ring-offset-2 ring-gray-400' : ''
-                    }`}
-                    style={{ backgroundColor: c.hex }}
-                    title={c.name}
-                  />
-                ))}
-              </div>
+              <ColorPicker value={color} onChange={setColor} size="sm" />
             </div>
 
             {/* Description (Isi) */}
@@ -222,20 +212,18 @@ export function EventDetailSidebar({
             {/* Actions */}
             <div className="flex gap-2 pt-4">
               {event && (
-                <button
-                  onClick={handleDelete}
-                  className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition"
-                >
+                <Button onClick={handleDelete} variant="danger" className="flex-1">
                   Delete
-                </button>
+                </Button>
               )}
-              <button
+              <Button
                 onClick={handleSave}
                 disabled={!title.trim()}
-                className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="primary"
+                className="flex-1"
               >
                 {isCreating ? 'Create' : 'Save'}
-              </button>
+              </Button>
             </div>
           </div>
         )}
