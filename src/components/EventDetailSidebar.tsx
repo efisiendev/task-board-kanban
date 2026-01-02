@@ -5,6 +5,8 @@ import {
   useUpdateCalendarEvent,
   useDeleteCalendarEvent,
 } from '../hooks/useCalendarEvents'
+import { COLOR_PALETTE, DEFAULTS } from '../constants/theme'
+import { CloseIcon } from './ui/Icons'
 
 interface EventDetailSidebarProps {
   date: Date | null
@@ -26,7 +28,7 @@ export function EventDetailSidebar({
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [coordinationType, setCoordinationType] = useState<CalendarEventCoordinationType | ''>('')
-  const [color, setColor] = useState('#3B82F6')
+  const [color, setColor] = useState<string>(DEFAULTS.eventColor)
 
   const createEvent = useCreateCalendarEvent()
   const updateEvent = useUpdateCalendarEvent()
@@ -41,7 +43,7 @@ export function EventDetailSidebar({
       setStartDate(dateStr)
       setEndDate(dateStr)
       setCoordinationType('')
-      setColor('#3B82F6')
+      setColor(DEFAULTS.eventColor)
     }
   }, [isCreating, date])
 
@@ -118,9 +120,7 @@ export function EventDetailSidebar({
           onClick={onClose}
           className="text-gray-400 hover:text-gray-600 transition"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <CloseIcon />
         </button>
       </div>
 
@@ -191,14 +191,15 @@ export function EventDetailSidebar({
                 Color
               </label>
               <div className="flex gap-2">
-                {['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'].map((c) => (
+                {COLOR_PALETTE.slice(0, 6).map((c) => (
                   <button
-                    key={c}
-                    onClick={() => setColor(c)}
+                    key={c.hex}
+                    onClick={() => setColor(c.hex)}
                     className={`w-8 h-8 rounded-full transition ${
-                      color === c ? 'ring-2 ring-offset-2 ring-gray-400' : ''
+                      color === c.hex ? 'ring-2 ring-offset-2 ring-gray-400' : ''
                     }`}
-                    style={{ backgroundColor: c }}
+                    style={{ backgroundColor: c.hex }}
+                    title={c.name}
                   />
                 ))}
               </div>

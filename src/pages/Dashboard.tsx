@@ -9,6 +9,8 @@ import { useCalendarEventsByRange } from '../hooks/useCalendarEvents'
 import { CalendarMonth } from '../components/CalendarMonth'
 import { EventDetailSidebar } from '../components/EventDetailSidebar'
 import { CalendarEvent } from '../types'
+import { COLOR_PALETTE, DEFAULTS } from '../constants/theme'
+import { useToggle } from '../hooks/useToggle'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -19,8 +21,8 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [newBoardName, setNewBoardName] = useState('')
   const [newBoardDescription, setNewBoardDescription] = useState('')
-  const [newBoardColor, setNewBoardColor] = useState('#3B82F6') // Default blue
-  const [showForm, setShowForm] = useState(false)
+  const [newBoardColor, setNewBoardColor] = useState<string>(DEFAULTS.boardColor)
+  const showForm = useToggle()
   const [editingBoard, setEditingBoard] = useState<{ id: string; name: string; description: string | null; color: string } | null>(null)
   const [deletingBoard, setDeletingBoard] = useState<{ id: string; name: string } | null>(null)
   const [leavingBoard, setLeavingBoard] = useState<{ id: string; name: string; ownerEmail: string } | null>(null)
@@ -38,18 +40,6 @@ export default function Dashboard() {
   const endOfMonth = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0]
   const { data: monthEvents = [] } = useCalendarEventsByRange(startOfMonth, endOfMonth)
 
-  // Predefined color options
-  const colorOptions = [
-    { name: 'Blue', hex: '#3B82F6' },
-    { name: 'Green', hex: '#10B981' },
-    { name: 'Purple', hex: '#8B5CF6' },
-    { name: 'Red', hex: '#EF4444' },
-    { name: 'Orange', hex: '#F59E0B' },
-    { name: 'Pink', hex: '#EC4899' },
-    { name: 'Indigo', hex: '#6366F1' },
-    { name: 'Teal', hex: '#14B8A6' },
-  ]
-
   const handleCreateBoard = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newBoardName.trim()) return
@@ -62,8 +52,8 @@ export default function Dashboard() {
       })
       setNewBoardName('')
       setNewBoardDescription('')
-      setNewBoardColor('#3B82F6')
-      setShowForm(false)
+      setNewBoardColor(DEFAULTS.boardColor)
+      showForm.close()
     } catch (error) {
       console.error('Failed to create project:', error)
     }
@@ -142,9 +132,9 @@ export default function Dashboard() {
           <main className="max-w-7xl mx-auto px-4 py-6 md:py-12 w-full">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold text-gray-900">My Projects</h2>
-          {!showForm && (
+          {!showForm.isOpen && (
             <button
-              onClick={() => setShowForm(true)}
+              onClick={showForm.open}
               className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition"
             >
               New Project
@@ -182,7 +172,7 @@ export default function Dashboard() {
         </div>
 
         {/* New Project Form */}
-        {showForm && (
+        {showForm.isOpen && (
           <div className="mb-8 p-6 bg-white rounded-lg border border-gray-200">
             <form onSubmit={handleCreateBoard} className="space-y-4">
               <div>
@@ -209,7 +199,7 @@ export default function Dashboard() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Project Color</label>
                 <div className="flex gap-2">
-                  {colorOptions.map((color) => (
+                  {COLOR_PALETTE.map((color) => (
                     <button
                       key={color.hex}
                       type="button"
@@ -236,10 +226,10 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => {
-                    setShowForm(false)
+                    showForm.close()
                     setNewBoardName('')
                     setNewBoardDescription('')
-                    setNewBoardColor('#3B82F6')
+                    setNewBoardColor(DEFAULTS.boardColor)
                   }}
                   className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-900 rounded-lg font-medium transition"
                 >
@@ -447,7 +437,7 @@ export default function Dashboard() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Project Color</label>
                 <div className="flex gap-2">
-                  {colorOptions.map((color) => (
+                  {COLOR_PALETTE.map((color) => (
                     <button
                       key={color.hex}
                       type="button"
