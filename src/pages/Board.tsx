@@ -627,8 +627,8 @@ export default function Board() {
       {/* Page Modal */}
       {selectedPage && (
         <PageModal
-          page={selectedPage}
-          pages={pages}
+          pageId={selectedPage.id}
+          boardId={boardId!}
           onClose={() => setSelectedPage(null)}
         />
       )}
