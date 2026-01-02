@@ -17,6 +17,7 @@ interface EventDetailSidebarProps {
   isCreating: boolean
   events: CalendarEvent[]
   onClose: () => void
+  onEventClick: (event: CalendarEvent) => void
 }
 
 export function EventDetailSidebar({
@@ -25,6 +26,7 @@ export function EventDetailSidebar({
   isCreating,
   events,
   onClose,
+  onEventClick,
 }: EventDetailSidebarProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -42,7 +44,12 @@ export function EventDetailSidebar({
   // Initialize form when creating new event
   useEffect(() => {
     if (isCreating && date) {
-      const dateStr = date.toISOString().split('T')[0]
+      // Use local date to avoid timezone issues
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const dateStr = `${year}-${month}-${day}`
+      
       setTitle('')
       setDescription('')
       setStartDate(dateStr)
@@ -52,6 +59,20 @@ export function EventDetailSidebar({
       setBoardId('') // Default to public event
     }
   }, [isCreating, date])
+
+  // Initialize form when viewing date (not creating, not editing event)
+  useEffect(() => {
+    if (!isCreating && !event && date) {
+      // Set default dates to the clicked date
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const dateStr = `${year}-${month}-${day}`
+      
+      setStartDate(dateStr)
+      setEndDate(dateStr)
+    }
+  }, [date, isCreating, event])
 
   // Initialize form when viewing existing event
   useEffect(() => {
@@ -128,11 +149,28 @@ export function EventDetailSidebar({
   // Get events for the selected date
   const dateEvents = date
     ? events.filter((e) => {
-        const dateStr = date.toISOString().split('T')[0]
+        // Use local date components to avoid timezone issues
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const dateStr = `${year}-${month}-${day}`
+        
         // Check if the selected date falls within the event's date range
-        return e.start_date <= dateStr && dateStr <= e.end_date
+        const matches = e.start_date <= dateStr && dateStr <= e.end_date
+        console.log('🔍 Filter debug:', {
+          eventTitle: e.title,
+          eventStartDate: e.start_date,
+          eventEndDate: e.end_date,
+          selectedDate: dateStr,
+          matches,
+        })
+        return matches
       })
     : []
+
+  // Format date for logging
+  const logDateStr = date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : null
+  console.log('📅 Date events for', logDateStr, ':', dateEvents.length, 'events')
 
   return (
     <div className="w-96 bg-white border-l border-gray-200 flex flex-col h-full">
@@ -215,7 +253,14 @@ export function EventDetailSidebar({
                 <input
                   type="date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => {
+                    const newStartDate = e.target.value
+                    setStartDate(newStartDate)
+                    // Auto-adjust end date if it's before the new start date
+                    if (endDate && newStartDate > endDate) {
+                      setEndDate(newStartDate)
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -227,6 +272,7 @@ export function EventDetailSidebar({
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -296,10 +342,7 @@ export function EventDetailSidebar({
                   <div
                     key={e.id}
                     className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition"
-                    onClick={() => {
-                      // Switch to edit mode for this event
-                      // You can implement this by calling a prop function
-                    }}
+                    onClick={() => onEventClick(e)}
                   >
                     <div className="flex items-start gap-2">
                       <div
@@ -384,13 +427,21 @@ export function EventDetailSidebar({
                 <input
                   type="date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => {
+                    const newStartDate = e.target.value
+                    setStartDate(newStartDate)
+                    // Auto-adjust end date if it's before the new start date
+                    if (endDate && newStartDate > endDate) {
+                      setEndDate(newStartDate)
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>

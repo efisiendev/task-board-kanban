@@ -319,6 +319,7 @@ export default function Dashboard() {
             isCreating={calendar.isCreatingEvent}
             events={monthEvents}
             onClose={calendar.handleClose}
+            onEventClick={calendar.handleEventClick}
           />
         )}
       </div>

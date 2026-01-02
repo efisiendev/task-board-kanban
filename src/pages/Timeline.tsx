@@ -113,6 +113,7 @@ export default function Timeline() {
             isCreating={isCreatingEvent}
             events={events}
             onClose={handleCloseSidebar}
+            onEventClick={handleEventClick}
           />
         )}
       </div>

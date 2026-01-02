@@ -46,7 +46,8 @@ export function CalendarMonth({
     const filtered = events.filter((event) => {
       const start = event.start_date
       const end = event.end_date
-      return dateStr >= start && dateStr <= end
+      // Check if date falls within event's date range
+      return start <= dateStr && dateStr <= end
     })
 
     // Debug: Log if more than 3 events on a day
