@@ -129,7 +129,8 @@ export function EventDetailSidebar({
   const dateEvents = date
     ? events.filter((e) => {
         const dateStr = date.toISOString().split('T')[0]
-        return dateStr >= e.start_date && dateStr <= e.end_date
+        // Check if the selected date falls within the event's date range
+        return e.start_date <= dateStr && dateStr <= e.end_date
       })
     : []
 
