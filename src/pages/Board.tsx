@@ -21,6 +21,7 @@ import { MainLayout } from '../components/MainLayout'
 import { Task, BoardPage } from '../types'
 import { useBoardPages, useCreateBoardPage, useUpdateBoardPage, useDeleteBoardPage } from '../hooks/useBoardPages'
 import { useToggle } from '../hooks/useToggle'
+import { SidePanel } from '../components/ui/SidePanel'
 
 type ViewType = 'kanban' | 'table' | 'list' | 'calendar'
 
@@ -170,7 +171,7 @@ export default function Board() {
   }
 
   const handleDeleteTask = async () => {
-    if (!editingTask || !confirm('Delete this task?')) return
+    if (!editingTask) return
     try {
       await deleteTaskMutation.mutateAsync({ id: editingTask.id, boardId: boardId! })
       setEditingTask(null)
@@ -340,133 +341,105 @@ export default function Board() {
       {/* Main Content */}
       <main className="w-full py-6 md:py-12">
         <div className="flex gap-6">
-          {/* Filter Sidebar - Fixed overlay on mobile, sidebar on desktop */}
-          {showFilters.isOpen && (
-            <>
-              {/* Mobile backdrop */}
-              <div
-                className="fixed inset-0 bg-black bg-opacity-20 z-40 md:hidden"
-                onClick={showFilters.close}
-              />
-              {/* Sidebar */}
-              <div className="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-80 md:w-auto md:pl-4 bg-white md:bg-transparent shadow-2xl md:shadow-none">
-                <div className="h-full overflow-y-auto p-4 md:p-0">
-                  {/* Close button - mobile only */}
-                  <button
-                    onClick={showFilters.close}
-                    className="md:hidden mb-4 text-gray-400 hover:text-gray-600"
-                  >
-                    ✕ Close
-                  </button>
-                  <FilterSidebar
-                    filters={filters}
-                    statuses={statuses}
-                    onChange={setFilters}
-                    onClear={() => setFilters(DEFAULT_FILTERS)}
+          {/* Filter Sidebar */}
+          <SidePanel
+            isOpen={showFilters.isOpen}
+            onClose={showFilters.close}
+            side="left"
+            width="w-80 md:w-auto md:pl-4"
+          >
+            <FilterSidebar
+              filters={filters}
+              statuses={statuses}
+              onChange={setFilters}
+              onClear={() => setFilters(DEFAULT_FILTERS)}
+            />
+          </SidePanel>
+
+          {/* Pages Sidebar */}
+          <SidePanel
+            isOpen={showPages.isOpen}
+            onClose={showPages.close}
+            side="left"
+            width="w-80 md:w-96 md:pl-4"
+          >
+                <div className="h-[calc(100vh-8rem)] md:h-full bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <FolderTree
+                    pages={pages}
+                    selectedPageId={selectedPage?.id || null}
+                    onSelectPage={(page) => {
+                      if (page?.type === 'page') {
+                        setSelectedPage(page)
+                        showPages.close()
+                      }
+                    }}
+                    onCreatePage={async (parentId) => {
+                      try {
+                        await createPageMutation.mutateAsync({
+                          board_id: boardId!,
+                          parent_id: parentId,
+                          title: 'Untitled',
+                          type: 'page',
+                          content: '',
+                        })
+                      } catch (error) {
+                        console.error('Failed to create page:', error)
+                      }
+                    }}
+                    onCreateFolder={async (parentId, folderName) => {
+                      try {
+                        await createPageMutation.mutateAsync({
+                          board_id: boardId!,
+                          parent_id: parentId,
+                          title: folderName,
+                          type: 'folder',
+                        })
+                      } catch (error) {
+                        console.error('Failed to create folder:', error)
+                      }
+                    }}
+                    onCreateFile={async (parentId, fileName, driveUrl, mimeType) => {
+                      try {
+                        await createPageMutation.mutateAsync({
+                          board_id: boardId!,
+                          parent_id: parentId,
+                          title: fileName,
+                          type: 'file',
+                          storage_path: driveUrl,
+                          mime_type: mimeType,
+                        })
+                      } catch (error) {
+                        console.error('Failed to create file:', error)
+                      }
+                    }}
+                    onDeletePage={async (page) => {
+                      try {
+                        await deletePageMutation.mutateAsync({
+                          id: page.id,
+                          board_id: boardId!,
+                        })
+                      } catch (error) {
+                        console.error('Failed to delete page:', error)
+                      }
+                    }}
+                    onRenamePage={async (pageId, newTitle) => {
+                      try {
+                        await updatePageMutation.mutateAsync({
+                          id: pageId,
+                          board_id: boardId!,
+                          title: newTitle,
+                        })
+                      } catch (error) {
+                        console.error('Failed to rename page:', error)
+                      }
+                    }}
+                    onFileClick={(file) => {
+                      setSelectedFile(file)
+                      showPages.close()
+                    }}
                   />
                 </div>
-              </div>
-            </>
-          )}
-
-          {/* Pages Sidebar - Fixed overlay on mobile, sidebar on desktop */}
-          {showPages.isOpen && (
-            <>
-              {/* Mobile backdrop */}
-              <div
-                className="fixed inset-0 bg-black bg-opacity-20 z-40 md:hidden"
-                onClick={showPages.close}
-              />
-              {/* Sidebar */}
-              <div className="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-80 md:w-96 md:pl-4 bg-white md:bg-transparent shadow-2xl md:shadow-none">
-                <div className="h-full overflow-hidden p-4 md:p-0">
-                  {/* Close button - mobile only */}
-                  <button
-                    onClick={showPages.close}
-                    className="md:hidden mb-4 text-gray-400 hover:text-gray-600"
-                  >
-                    ✕ Close
-                  </button>
-                  <div className="h-[calc(100%-2rem)] md:h-full bg-white rounded-lg border border-gray-200 overflow-hidden">
-                    <FolderTree
-                      pages={pages}
-                      selectedPageId={selectedPage?.id || null}
-                      onSelectPage={(page) => {
-                        if (page?.type === 'page') {
-                          setSelectedPage(page)
-                          showPages.close() // Close sidebar on mobile
-                        }
-                      }}
-                      onCreatePage={async (parentId) => {
-                        try {
-                          await createPageMutation.mutateAsync({
-                            board_id: boardId!,
-                            parent_id: parentId,
-                            title: 'Untitled',
-                            type: 'page',
-                            content: '',
-                          })
-                        } catch (error) {
-                          console.error('Failed to create page:', error)
-                        }
-                      }}
-                      onCreateFolder={async (parentId, folderName) => {
-                        try {
-                          await createPageMutation.mutateAsync({
-                            board_id: boardId!,
-                            parent_id: parentId,
-                            title: folderName,
-                            type: 'folder',
-                          })
-                        } catch (error) {
-                          console.error('Failed to create folder:', error)
-                        }
-                      }}
-                      onCreateFile={async (parentId, fileName, driveUrl, mimeType) => {
-                        try {
-                          await createPageMutation.mutateAsync({
-                            board_id: boardId!,
-                            parent_id: parentId,
-                            title: fileName,
-                            type: 'file',
-                            storage_path: driveUrl,
-                            mime_type: mimeType,
-                          })
-                        } catch (error) {
-                          console.error('Failed to create file:', error)
-                        }
-                      }}
-                      onDeletePage={async (page) => {
-                        try {
-                          await deletePageMutation.mutateAsync({
-                            id: page.id,
-                            board_id: boardId!,
-                          })
-                        } catch (error) {
-                          console.error('Failed to delete page:', error)
-                        }
-                      }}
-                      onRenamePage={async (pageId, newTitle) => {
-                        try {
-                          await updatePageMutation.mutateAsync({
-                            id: pageId,
-                            board_id: boardId!,
-                            title: newTitle,
-                          })
-                        } catch (error) {
-                          console.error('Failed to rename page:', error)
-                        }
-                      }}
-                      onFileClick={(file) => {
-                        setSelectedFile(file)
-                        showPages.close() // Close sidebar on mobile
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+          </SidePanel>
 
           {/* Board Views */}
           <div className="flex-1 min-w-0 px-2 md:px-0">
@@ -535,42 +508,26 @@ export default function Board() {
             )}
           </div>
 
-          {/* Members Sidebar - Fixed overlay on mobile, sidebar on desktop */}
-          {showMembers.isOpen && (
-            <>
-              {/* Mobile backdrop */}
-              <div
-                className="fixed inset-0 bg-black bg-opacity-20 z-40 md:hidden"
-                onClick={showMembers.close}
-              />
-              {/* Sidebar */}
-              <div className="fixed md:static inset-y-0 right-0 z-50 md:z-auto w-80 md:pr-4 bg-white md:bg-transparent shadow-2xl md:shadow-none">
-                <div className="h-full overflow-y-auto p-4 md:p-0">
-                  {/* Close button - mobile only */}
-                  <button
-                    onClick={showMembers.close}
-                    className="md:hidden mb-4 text-gray-400 hover:text-gray-600"
-                  >
-                    ✕ Close
-                  </button>
-                  <BoardMembers boardId={boardId!} isOwner={isOwner} />
-                </div>
-              </div>
-            </>
-          )}
+          {/* Members Sidebar */}
+          <SidePanel
+            isOpen={showMembers.isOpen}
+            onClose={showMembers.close}
+            side="right"
+            width="w-80 md:pr-4"
+          >
+            <BoardMembers boardId={boardId!} isOwner={isOwner} />
+          </SidePanel>
 
         </div>
       </main>
 
-      {/* Settings Sidebar (Overlay) */}
+      {/* Settings Sidebar (Full Overlay) */}
       {showStatuses.isOpen && (
         <>
-          {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black bg-opacity-20 z-40"
             onClick={showStatuses.close}
           />
-          {/* Sidebar */}
           <div className="fixed top-0 right-0 h-full w-full md:w-96 bg-white shadow-2xl z-50 overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Board Settings</h2>

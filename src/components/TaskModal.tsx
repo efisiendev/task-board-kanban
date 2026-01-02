@@ -6,12 +6,14 @@ import { ActivityLog } from './ActivityLog'
 import { SubTaskList } from './SubTaskList'
 import { TaskPages } from './TaskPages'
 import { TaskRelations } from './TaskRelations'
+import { ConfirmDialog } from './ConfirmDialog'
 import { useTaskFormState, TaskFormData } from '../hooks/useTaskFormState'
 import { useAutoSave } from '../hooks/useAutoSave'
 import { PropertyRow, PriorityField, DateField, TimeField, AssigneeField, LabelsField, AddPropertyButton, AdditionalProperty } from './shared'
 import { useSubtasks } from '../hooks/useSubtasks'
 import { useTaskPages } from '../hooks/useTaskPages'
 import { useTaskRelations } from '../hooks/useTaskRelations'
+import { useToggle } from '../hooks/useToggle'
 
 interface TaskModalProps {
   task: Task | null
@@ -35,6 +37,7 @@ export default function TaskModal({
   const [editingProperty, setEditingProperty] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [visibleProperties, setVisibleProperties] = useState<AdditionalProperty[]>([])
+  const showDeleteConfirm = useToggle()
 
   // Fetch data to determine which properties have content
   const { data: subtasks = [] } = useSubtasks(task?.id || '')
@@ -175,6 +178,7 @@ export default function TaskModal({
   if (!isOpen) return null
 
   return (
+    <>
     <div className="fixed inset-0 z-50">
       {/* Overlay */}
       <div
@@ -415,11 +419,7 @@ export default function TaskModal({
                 {task && (
                   <button
                     type="button"
-                    onClick={async () => {
-                      if (confirm('Delete this task?')) {
-                        await onDelete()
-                      }
-                    }}
+                    onClick={showDeleteConfirm.open}
                     disabled={loading}
                     className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition disabled:opacity-50"
                   >
@@ -450,5 +450,36 @@ export default function TaskModal({
         </div>
       </div>
     </div>
+
+    {/* Delete Confirmation Dialog */}
+    <ConfirmDialog
+      isOpen={showDeleteConfirm.isOpen}
+      title="Delete Task?"
+      icon="⚠️"
+      message={
+        <div className="space-y-2">
+          <p>This will <strong>permanently delete</strong>:</p>
+          <ul className="list-disc list-inside space-y-1 text-gray-600">
+            <li>Task "<strong>{task?.title}</strong>"</li>
+            <li>All subtasks</li>
+            <li>All comments and activity history</li>
+            <li>All attachments and pages</li>
+          </ul>
+          <p className="text-red-600 font-medium mt-3">
+            This action cannot be undone.
+          </p>
+        </div>
+      }
+      confirmText="Delete Task"
+      confirmButtonClass="bg-red-600 hover:bg-red-700"
+      requireTextConfirm={true}
+      textToConfirm={task?.title || ''}
+      onConfirm={async () => {
+        await onDelete()
+        showDeleteConfirm.close()
+      }}
+      onCancel={showDeleteConfirm.close}
+    />
+  </>
   )
 }
