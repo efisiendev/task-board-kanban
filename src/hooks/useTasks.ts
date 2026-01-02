@@ -59,12 +59,11 @@ export function useTasks(boardId: string) {
           table: 'tasks',
           filter: `board_id=eq.${boardId}`,
         },
-        (payload) => {
+        () => {
           queryClient.invalidateQueries({ queryKey: ['tasks', boardId] })
         }
       )
-      .subscribe((status) => {
-      })
+      .subscribe()
 
     return () => {
       channel.unsubscribe()
