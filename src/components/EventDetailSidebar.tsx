@@ -5,6 +5,7 @@ import {
   useUpdateCalendarEvent,
   useDeleteCalendarEvent,
 } from '../hooks/useCalendarEvents'
+import { useBoards } from '../hooks/useBoards'
 import { DEFAULTS } from '../constants/theme'
 import { CloseIcon } from './ui/Icons'
 import { ColorPicker } from './ui/ColorPicker'
@@ -31,7 +32,9 @@ export function EventDetailSidebar({
   const [endDate, setEndDate] = useState('')
   const [coordinationType, setCoordinationType] = useState<CalendarEventCoordinationType | ''>('')
   const [color, setColor] = useState<string>(DEFAULTS.eventColor)
+  const [boardId, setBoardId] = useState<string>('')
 
+  const { data: boards = [] } = useBoards()
   const createEvent = useCreateCalendarEvent()
   const updateEvent = useUpdateCalendarEvent()
   const deleteEvent = useDeleteCalendarEvent()
@@ -46,6 +49,7 @@ export function EventDetailSidebar({
       setEndDate(dateStr)
       setCoordinationType('')
       setColor(DEFAULTS.eventColor)
+      setBoardId('') // Default to public event
     }
   }, [isCreating, date])
 
@@ -58,23 +62,19 @@ export function EventDetailSidebar({
       setEndDate(event.end_date)
       setCoordinationType(event.coordination_type || '')
       setColor(event.color)
+      setBoardId(event.board_id || '')
     }
   }, [event])
 
   const handleSave = async () => {
     if (!title.trim()) return
 
+    console.log('📝 Saving event...', { title, startDate, endDate, boardId, coordinationType })
+
     try {
-      if (isCreating) {
-        await createEvent.mutateAsync({
-          title,
-          description,
-          startDate,
-          endDate,
-          coordinationType: coordinationType || undefined,
-          color,
-        })
-      } else if (event) {
+      if (event) {
+        // Editing existing event
+        console.log('✏️ Updating existing event:', event.id)
         await updateEvent.mutateAsync({
           id: event.id,
           title,
@@ -82,12 +82,34 @@ export function EventDetailSidebar({
           startDate,
           endDate,
           coordinationType: coordinationType || null,
+          boardId: boardId || null,
           color,
         })
+        console.log('✅ Event updated successfully')
+        onClose()
+      } else {
+        // Creating new event (works in both isCreating mode and viewing mode)
+        console.log('➕ Creating new event...')
+        const result = await createEvent.mutateAsync({
+          title,
+          description,
+          startDate,
+          endDate,
+          coordinationType: coordinationType || undefined,
+          boardId: boardId || undefined, // null = public event, value = board-specific
+          color,
+        })
+        console.log('✅ Event created successfully:', result)
+        // Reset form after create (don't close sidebar)
+        setTitle('')
+        setDescription('')
+        setCoordinationType('')
+        setColor(DEFAULTS.eventColor)
+        setBoardId('')
+        // Keep the dates as-is so user can create another event on same date
       }
-      onClose()
     } catch (error) {
-      console.error('Error saving event:', error)
+      console.error('❌ Error saving event:', error)
     }
   }
 
@@ -161,6 +183,28 @@ export function EventDetailSidebar({
               </select>
             </div>
 
+            {/* Visibility - Link to Board */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Visibility
+              </label>
+              <select
+                value={boardId}
+                onChange={(e) => setBoardId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              >
+                <option value="">🌐 Public (visible to all users)</option>
+                {boards.map((board) => (
+                  <option key={board.id} value={board.id}>
+                    📁 {board.name} (members only)
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {boardId ? 'Only board members can see this event' : 'All users can see this event'}
+              </p>
+            </div>
+
             {/* Date Range */}
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -228,10 +272,11 @@ export function EventDetailSidebar({
           </div>
         )}
 
-        {/* Viewing Date Events */}
+        {/* Viewing Date Events with Create Form */}
         {!isCreating && !event && date && (
-          <div>
-            <div className="mb-4">
+          <div className="space-y-6">
+            {/* Date Header */}
+            <div>
               <h3 className="text-lg font-semibold text-gray-900">
                 {date.toLocaleDateString('en-US', {
                   weekday: 'long',
@@ -242,8 +287,10 @@ export function EventDetailSidebar({
               </h3>
             </div>
 
-            {dateEvents.length > 0 ? (
-              <div className="space-y-3">
+            {/* Existing Events List */}
+            {dateEvents.length > 0 && (
+              <div className="space-y-3 pb-6 border-b border-gray-200">
+                <h4 className="text-sm font-medium text-gray-700">Events on this date:</h4>
                 {dateEvents.map((e) => (
                   <div
                     key={e.id}
@@ -260,9 +307,19 @@ export function EventDetailSidebar({
                       />
                       <div className="flex-1">
                         <h4 className="font-medium text-gray-900">{e.title}</h4>
+                        {e.board && (
+                          <span className="text-xs text-gray-500">
+                            📁 {e.board.name}
+                          </span>
+                        )}
+                        {!e.board_id && (
+                          <span className="text-xs text-gray-500">
+                            🌐 Public
+                          </span>
+                        )}
                         {e.coordination_type && (
-                          <span className="text-xs text-gray-500 capitalize">
-                            {e.coordination_type}
+                          <span className="text-xs text-gray-500 capitalize ml-2">
+                            • {e.coordination_type}
                           </span>
                         )}
                         {e.description && (
@@ -275,12 +332,94 @@ export function EventDetailSidebar({
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-8 text-gray-400">
-                <p>No events on this date.</p>
-                <p className="text-sm mt-1">Double-click a date to create one!</p>
-              </div>
             )}
+
+            {/* Create New Event Form - Always visible at bottom */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium text-gray-700">Create New Event</h4>
+
+              {/* Title */}
+              <div>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Event title..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Coordination Type */}
+              <div>
+                <select
+                  value={coordinationType}
+                  onChange={(e) => setCoordinationType(e.target.value as CalendarEventCoordinationType | '')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                >
+                  <option value="">Coordination type...</option>
+                  <option value="synchronous">Synchronous</option>
+                  <option value="asynchronous">Asynchronous</option>
+                </select>
+              </div>
+
+              {/* Visibility - Link to Board */}
+              <div>
+                <select
+                  value={boardId}
+                  onChange={(e) => setBoardId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                >
+                  <option value="">🌐 Public (visible to all users)</option>
+                  {boards.map((board) => (
+                    <option key={board.id} value={board.id}>
+                      📁 {board.name} (members only)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date Range */}
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Color */}
+              <div>
+                <ColorPicker value={color} onChange={setColor} size="sm" />
+              </div>
+
+              {/* Description */}
+              <div>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Event details..."
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                />
+              </div>
+
+              {/* Create Button */}
+              <Button
+                onClick={handleSave}
+                disabled={!title.trim()}
+                variant="primary"
+                className="w-full"
+              >
+                Create Event
+              </Button>
+            </div>
           </div>
         )}
       </div>
