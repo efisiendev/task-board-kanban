@@ -78,7 +78,7 @@ export interface UserWithProfile extends User {
   profile?: UserProfile
 }
 
-export interface TaskChecklistItem {
+export interface Subtask {
   id: string
   task_id: string
   title: string

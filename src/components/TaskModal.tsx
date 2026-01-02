@@ -9,7 +9,7 @@ import { TaskRelations } from './TaskRelations'
 import { useTaskFormState, TaskFormData } from '../hooks/useTaskFormState'
 import { useAutoSave } from '../hooks/useAutoSave'
 import { PropertyRow, PriorityField, DateField, TimeField, AssigneeField, LabelsField, AddPropertyButton, AdditionalProperty } from './shared'
-import { useTaskChecklist } from '../hooks/useTaskChecklist'
+import { useSubtasks } from '../hooks/useSubtasks'
 import { useTaskPages } from '../hooks/useTaskPages'
 import { useTaskRelations } from '../hooks/useTaskRelations'
 
@@ -37,12 +37,12 @@ export default function TaskModal({
   const [visibleProperties, setVisibleProperties] = useState<AdditionalProperty[]>([])
 
   // Fetch data to determine which properties have content
-  const { data: subtasks = [] } = useTaskChecklist(task?.id || '')
+  const { data: subtasks = [] } = useSubtasks(task?.id || '')
   const { data: pages = [] } = useTaskPages(task?.id || '')
   const { data: relationsData } = useTaskRelations(task?.id || '')
   const { outgoing = [], incoming = [] } = relationsData || {}
 
-  // Auto-show properties that have content
+  // Auto-show properties that have content (only on initial load)
   useEffect(() => {
     if (!task) return
 
@@ -51,7 +51,11 @@ export default function TaskModal({
     if (pages.length > 0) autoVisible.push('pages')
     if (outgoing.length > 0 || incoming.length > 0) autoVisible.push('relations')
 
-    setVisibleProperties(autoVisible)
+    setVisibleProperties(prev => {
+      // Merge auto-visible dengan yang sudah manually ditambahkan user
+      const merged = new Set([...prev, ...autoVisible])
+      return Array.from(merged)
+    })
   }, [task, subtasks.length, pages.length, outgoing.length, incoming.length])
 
   // Auto-save function for edit mode

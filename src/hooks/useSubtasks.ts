@@ -1,13 +1,13 @@
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { TaskChecklistItem } from '../types'
+import { Subtask } from '../types'
 
-export function useTaskChecklist(taskId: string) {
+export function useSubtasks(taskId: string) {
   const queryClient = useQueryClient()
 
   const query = useQuery({
-    queryKey: ['task-checklist', taskId],
+    queryKey: ['subtasks', taskId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tasks')
@@ -16,11 +16,11 @@ export function useTaskChecklist(taskId: string) {
         .order('order_index', { ascending: true })
 
       if (error) throw error
-      return data as TaskChecklistItem[]
+      return data as Subtask[]
     },
   })
 
-  // Real-time subscription for checklist items (now from tasks table)
+  // Real-time subscription for subtasks (from tasks table where parent_task_id is set)
   useEffect(() => {
 
     const channel = supabase
@@ -34,7 +34,7 @@ export function useTaskChecklist(taskId: string) {
           filter: `parent_task_id=eq.${taskId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['task-checklist', taskId] })
+          queryClient.invalidateQueries({ queryKey: ['subtasks', taskId] })
         }
       )
       .subscribe()
@@ -47,7 +47,7 @@ export function useTaskChecklist(taskId: string) {
   return query
 }
 
-export function useCreateChecklistItem() {
+export function useCreateSubtask() {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -72,7 +72,7 @@ export function useCreateChecklistItem() {
       description?: string
       orderIndex: number
       statusId?: string
-      priority?: TaskChecklistItem['priority']
+      priority?: Subtask['priority']
       assignedTo?: string | null
       dueDate?: string | null
       startDate?: string | null
@@ -123,15 +123,15 @@ export function useCreateChecklistItem() {
         .single()
 
       if (error) throw error
-      return data as TaskChecklistItem
+      return data as Subtask
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['task-checklist', variables.taskId] })
+      queryClient.invalidateQueries({ queryKey: ['subtasks', variables.taskId] })
     },
   })
 }
 
-export function useUpdateChecklistItem() {
+export function useUpdateSubtask() {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -155,7 +155,7 @@ export function useUpdateChecklistItem() {
       isCompleted?: boolean
       status_id?: string
       orderIndex?: number
-      priority?: TaskChecklistItem['priority']
+      priority?: Subtask['priority']
       assigned_to?: string | null
       due_date?: string | null
       labels?: string[] | null
@@ -182,15 +182,15 @@ export function useUpdateChecklistItem() {
         .single()
 
       if (error) throw error
-      return data as TaskChecklistItem
+      return data as Subtask
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['task-checklist', variables.taskId] })
+      queryClient.invalidateQueries({ queryKey: ['subtasks', variables.taskId] })
     },
   })
 }
 
-export function useDeleteChecklistItem() {
+export function useDeleteSubtask() {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -199,12 +199,12 @@ export function useDeleteChecklistItem() {
       if (error) throw error
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['task-checklist', variables.taskId] })
+      queryClient.invalidateQueries({ queryKey: ['subtasks', variables.taskId] })
     },
   })
 }
 
-export function useReorderChecklistItems() {
+export function useReorderSubtasks() {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -229,7 +229,7 @@ export function useReorderChecklistItems() {
       if (error) throw error
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['task-checklist', variables.taskId] })
+      queryClient.invalidateQueries({ queryKey: ['subtasks', variables.taskId] })
     },
   })
 }

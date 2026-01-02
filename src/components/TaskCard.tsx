@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { Task, UserProfile } from '../types'
 import { useProfileFromBatch } from '../hooks/useBatchUserProfiles'
-import { useTaskChecklist } from '../hooks/useTaskChecklist'
+import { useSubtasks } from '../hooks/useSubtasks'
 
 interface TaskCardProps {
   task: Task
@@ -31,7 +31,7 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
 
   // Get assignee profile from batched data
   const assigneeProfile = useProfileFromBatch(task.assigned_to, userProfiles)
-  const { data: checklistItems = [] } = useTaskChecklist(task.id)
+  const { data: subtaskItems = [] } = useSubtasks(task.id)
 
   // Card colors - lighter than column background (for simplified/subtask mode)
   const CARD_COLORS: Record<string, string> = {
@@ -112,12 +112,12 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
     }
   }, [task.due_date])
 
-  // Memoize checklist calculations
-  const { checklistCompleted, checklistTotal, hasChecklist } = useMemo(() => ({
-    checklistCompleted: checklistItems.filter((i) => i.is_completed).length,
-    checklistTotal: checklistItems.length,
-    hasChecklist: checklistItems.length > 0
-  }), [checklistItems])
+  // Memoize subtask calculations
+  const { subtasksCompleted, subtasksTotal, hasSubtasks } = useMemo(() => ({
+    subtasksCompleted: subtaskItems.filter((i) => i.is_completed).length,
+    subtasksTotal: subtaskItems.length,
+    hasSubtasks: subtaskItems.length > 0
+  }), [subtaskItems])
 
   return (
     <div
@@ -236,12 +236,12 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
         </div>
       )}
 
-      {/* Footer with checklist, due date and estimated time - hidden in simplified mode */}
-      {!simplified && (hasChecklist || task.due_date || task.estimated_time) && (
+      {/* Footer with subtasks, due date and estimated time - hidden in simplified mode */}
+      {!simplified && (hasSubtasks || task.due_date || task.estimated_time) && (
         <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
-          {hasChecklist && (
-            <span className={`flex items-center gap-1 ${checklistCompleted === checklistTotal ? 'text-green-600' : ''}`}>
-              ☑️ {checklistCompleted}/{checklistTotal}
+          {hasSubtasks && (
+            <span className={`flex items-center gap-1 ${subtasksCompleted === subtasksTotal ? 'text-green-600' : ''}`}>
+              ☑️ {subtasksCompleted}/{subtasksTotal}
             </span>
           )}
           {formattedDate && (

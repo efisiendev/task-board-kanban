@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { TaskChecklistItem } from '../types'
+import { Subtask } from '../types'
 import { supabase } from '../lib/supabase'
 import UserSelector from './UserSelector'
 import { useTaskFormState } from '../hooks/useTaskFormState'
@@ -12,7 +12,7 @@ interface SubtaskModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (data: TaskFormData) => void
-  subtask?: TaskChecklistItem | null
+  subtask?: Subtask | null
   mode: 'create' | 'edit'
 }
 

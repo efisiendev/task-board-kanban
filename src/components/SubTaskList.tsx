@@ -7,12 +7,14 @@ import {
   useSensors,
   closestCorners,
 } from '@dnd-kit/core'
-import { TaskChecklistItem, Task } from '../types'
+import { Subtask, Task } from '../types'
+import { TaskFormData } from '../hooks/useTaskFormState'
 import {
-  useTaskChecklist,
-  useUpdateChecklistItem,
-  useDeleteChecklistItem,
-} from '../hooks/useTaskChecklist'
+  useSubtasks,
+  useCreateSubtask,
+  useUpdateSubtask,
+  useDeleteSubtask,
+} from '../hooks/useSubtasks'
 import { useBoardStatuses } from '../hooks/useBoardStatuses'
 import { SubtaskModal } from './SubtaskModal'
 import { useBatchUserProfiles } from '../hooks/useBatchUserProfiles'
@@ -24,13 +26,16 @@ interface SubTaskListProps {
 }
 
 export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
-  const [selectedSubtask, setSelectedSubtask] = useState<TaskChecklistItem | null>(null)
+  const [selectedSubtask, setSelectedSubtask] = useState<Subtask | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('edit')
+  const [initialStatusId, setInitialStatusId] = useState<string | null>(null)
 
-  const { data: items = [], isLoading } = useTaskChecklist(taskId)
+  const { data: items = [], isLoading } = useSubtasks(taskId)
   const { data: boardStatuses = [] } = useBoardStatuses(boardId)
-  const updateItem = useUpdateChecklistItem()
-  const deleteItem = useDeleteChecklistItem()
+  const createItem = useCreateSubtask()
+  const updateItem = useUpdateSubtask()
+  const deleteItem = useDeleteSubtask()
 
   // Batch fetch all user profiles for subtasks (prevents N+1 queries)
   const assigneeIds = useMemo(() => items.map(i => i.assigned_to), [items])
@@ -48,17 +53,72 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
     return <div className="p-4 text-gray-500">Loading...</div>
   }
 
+  // Define handleModalSave BEFORE it's used
+  const handleModalSave = async (data: TaskFormData) => {
+    if (modalMode === 'create') {
+      // Create new subtask
+      // Use initialStatusId if set, otherwise let backend pick first status
+      await createItem.mutateAsync({
+        taskId,
+        boardId,
+        title: data.title,
+        description: data.description,
+        orderIndex: items.length, // Add to end
+        statusId: initialStatusId || undefined,
+        priority: data.priority,
+        assignedTo: data.assigned_to,
+        dueDate: data.due_date,
+        startDate: data.start_date,
+        labels: data.labels,
+        estimatedTime: data.estimated_time,
+        actualTime: data.actual_time,
+      })
+    }
+    // For edit mode, auto-save already handles updates
+    // Just close the modal
+    setIsModalOpen(false)
+    setSelectedSubtask(null)
+    setInitialStatusId(null)
+  }
+
+  const handleAddSubtask = (statusId?: string) => {
+    setSelectedSubtask(null)
+    setModalMode('create')
+    setInitialStatusId(statusId || null)
+    setIsModalOpen(true)
+  }
+
   if (items.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-400">
-        <p>No subtasks yet.</p>
-        <p className="text-xs mt-2">Add subtasks to break down this task into smaller pieces</p>
+      <div className="p-4">
+        <div className="text-center text-gray-400 mb-4">
+          <p>No subtasks yet.</p>
+          <p className="text-xs mt-2">Add subtasks to break down this task into smaller pieces</p>
+        </div>
+        <button
+          onClick={() => handleAddSubtask()}
+          className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition"
+        >
+          + Add First Subtask
+        </button>
+
+        {/* Subtask Create Modal */}
+        <SubtaskModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false)
+            setSelectedSubtask(null)
+          }}
+          onSave={handleModalSave}
+          subtask={null}
+          mode={modalMode}
+        />
       </div>
     )
   }
 
-  // Convert checklist items to Task format for KanbanColumn compatibility
-  const convertToTask = (item: TaskChecklistItem): Task => ({
+  // Convert subtasks to Task format for KanbanColumn compatibility
+  const convertToTask = (item: Subtask): Task => ({
     id: item.id,
     title: item.title,
     description: null, // Subtasks don't have description in schema
@@ -168,19 +228,13 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
   }
 
   const handleTaskClick = (task: Task) => {
-    // Find original checklist item
+    // Find original subtask
     const item = items.find(i => i.id === task.id)
     if (item) {
       setSelectedSubtask(item)
+      setModalMode('edit')
       setIsModalOpen(true)
     }
-  }
-
-  const handleModalSave = async () => {
-    // For edit mode, auto-save already handles updates
-    // Just close the modal
-    setIsModalOpen(false)
-    setSelectedSubtask(null)
   }
 
   return (
@@ -203,6 +257,7 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
                 tasks={tasksByStatusId[status.id] || []}
                 userProfiles={userProfiles}
                 onTaskClick={handleTaskClick}
+                onAddTask={handleAddSubtask}
                 onDeleteTask={handleDelete}
                 simplified={true}
               />
@@ -212,7 +267,7 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
 
       </DndContext>
 
-      {/* Subtask Edit Modal */}
+      {/* Subtask Modal (Create/Edit) */}
       <SubtaskModal
         isOpen={isModalOpen}
         onClose={() => {
@@ -221,7 +276,7 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
         }}
         onSave={handleModalSave}
         subtask={selectedSubtask}
-        mode="edit"
+        mode={modalMode}
       />
     </div>
   )
