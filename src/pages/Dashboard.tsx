@@ -2,12 +2,16 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useBoards, useCreateBoard, useUpdateBoard, useDeleteBoard } from '../hooks/useBoards'
 import { useAuth } from '../hooks/useAuth'
-import { Sidebar } from '../components/Sidebar'
+import { MainLayout } from '../components/MainLayout'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { getRelativeTime } from '../utils/timeUtils'
+import { useCalendarEventsByRange } from '../hooks/useCalendarEvents'
+import { CalendarMonth } from '../components/CalendarMonth'
+import { EventDetailSidebar } from '../components/EventDetailSidebar'
+import { CalendarEvent } from '../types'
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const { data: boards = [], isLoading } = useBoards()
   const createBoardMutation = useCreateBoard()
   const updateBoardMutation = useUpdateBoard()
@@ -17,10 +21,22 @@ export default function Dashboard() {
   const [newBoardDescription, setNewBoardDescription] = useState('')
   const [newBoardColor, setNewBoardColor] = useState('#3B82F6') // Default blue
   const [showForm, setShowForm] = useState(false)
-  const [showSidebar, setShowSidebar] = useState(false)
   const [editingBoard, setEditingBoard] = useState<{ id: string; name: string; description: string | null; color: string } | null>(null)
   const [deletingBoard, setDeletingBoard] = useState<{ id: string; name: string } | null>(null)
   const [leavingBoard, setLeavingBoard] = useState<{ id: string; name: string; ownerEmail: string } | null>(null)
+
+  // Calendar event states
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false)
+
+  // Get current month events
+  const currentDate = new Date()
+  const currentYear = currentDate.getFullYear()
+  const currentMonth = currentDate.getMonth()
+  const startOfMonth = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0]
+  const endOfMonth = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0]
+  const { data: monthEvents = [] } = useCalendarEventsByRange(startOfMonth, endOfMonth)
 
   // Predefined color options
   const colorOptions = [
@@ -89,60 +105,43 @@ export default function Dashboard() {
     }
   }
 
-  const handleLogout = async () => {
-    await signOut()
-    navigate('/login')
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date)
+    setSelectedEvent(null)
+    setIsCreatingEvent(false)
+  }
+
+  const handleEventClick = (event: CalendarEvent) => {
+    setSelectedEvent(event)
+    setSelectedDate(null)
+    setIsCreatingEvent(false)
+  }
+
+  const handleCreateEvent = (date: Date) => {
+    setSelectedDate(date)
+    setIsCreatingEvent(true)
+    setSelectedEvent(null)
+  }
+
+  const handleCloseSidebar = () => {
+    setSelectedDate(null)
+    setSelectedEvent(null)
+    setIsCreatingEvent(false)
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <Sidebar
-        isOpen={showSidebar}
-        onClose={() => setShowSidebar(false)}
-      />
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 py-4 md:py-6">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2 md:gap-4">
-                {/* Hamburger Menu Button - Visible on all screens */}
-                <button
-                  onClick={() => setShowSidebar(!showSidebar)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition"
-                  aria-label="Toggle sidebar"
-                >
-                  <svg className="w-5 h-5 md:w-6 md:h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="text-xl md:text-3xl font-bold text-gray-900 hover:text-blue-600 transition"
-                >
-                  TaskFlow
-                </button>
-              </div>
-              <div className="flex items-center gap-2 md:gap-4">
-                <span className="hidden md:inline text-sm md:text-base text-gray-600">{user?.email}</span>
-                <button
-                  onClick={handleLogout}
-                  className="px-3 py-1.5 md:px-4 md:py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg transition text-sm md:text-base"
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 py-6 md:py-12 w-full">
+    <MainLayout
+      topBarContent={
+        <div className="flex justify-between items-center w-full">
+          <span className="text-sm text-gray-600 hidden md:inline">{user?.email}</span>
+        </div>
+      }
+    >
+      <div className="flex h-full overflow-hidden">
+        <div className="flex-1 overflow-y-auto bg-gray-50">
+          <main className="max-w-7xl mx-auto px-4 py-6 md:py-12 w-full">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
+          <h2 className="text-2xl font-bold text-gray-900">My Projects</h2>
           {!showForm && (
             <button
               onClick={() => setShowForm(true)}
@@ -151,6 +150,35 @@ export default function Dashboard() {
               New Project
             </button>
           )}
+        </div>
+
+        {/* Current Month Calendar */}
+        <div className="mb-8">
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {new Date(currentYear, currentMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </h3>
+              <button
+                onClick={() => navigate('/timeline')}
+                className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                View All Timeline
+              </button>
+            </div>
+            <CalendarMonth
+              monthName={new Date(currentYear, currentMonth).toLocaleDateString('en-US', { month: 'long' })}
+              year={currentYear}
+              month={currentMonth}
+              events={monthEvents}
+              onDateClick={handleDateClick}
+              onEventClick={handleEventClick}
+              onCreateEvent={handleCreateEvent}
+            />
+          </div>
         </div>
 
         {/* New Project Form */}
@@ -326,6 +354,18 @@ export default function Dashboard() {
           </div>
         )}
         </main>
+        </div>
+
+        {/* Event Detail Sidebar */}
+        {(selectedDate || selectedEvent) && (
+          <EventDetailSidebar
+            date={selectedDate}
+            event={selectedEvent}
+            isCreating={isCreatingEvent}
+            events={monthEvents}
+            onClose={handleCloseSidebar}
+          />
+        )}
       </div>
 
       {/* Delete Project Confirmation */}
@@ -442,6 +482,6 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-    </div>
+    </MainLayout>
   )
 }

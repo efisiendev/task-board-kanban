@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
 import { useBoards } from '../hooks/useBoards'
@@ -17,7 +17,7 @@ import TaskModal, { TaskFormData } from '../components/TaskModal'
 import BoardMembers from '../components/BoardMembers'
 import BoardStatusManager from '../components/BoardStatusManager'
 import { FilterSidebar, TaskFilters } from '../components/FilterSidebar'
-import { Sidebar } from '../components/Sidebar'
+import { MainLayout } from '../components/MainLayout'
 import { Task, BoardPage } from '../types'
 import { useBoardPages, useCreateBoardPage, useUpdateBoardPage, useDeleteBoardPage } from '../hooks/useBoardPages'
 
@@ -33,8 +33,7 @@ const DEFAULT_FILTERS: TaskFilters = {
 
 export default function Board() {
   const { boardId } = useParams<{ boardId: string }>()
-  const navigate = useNavigate()
-  const { signOut, user } = useAuth()
+  const { user } = useAuth()
   const { data: boards = [] } = useBoards()
   const { data: tasks = [], isLoading } = useTasks(boardId!)
   useBoardMembers(boardId!) // Keep data in cache
@@ -56,7 +55,6 @@ export default function Board() {
   const [showFilters, setShowFilters] = useState(false)
   const [showStatuses, setShowStatuses] = useState(false)
   const [showNewMenu, setShowNewMenu] = useState(false)
-  const [showSidebar, setShowSidebar] = useState(false)
   const [showPages, setShowPages] = useState(false)
   const [currentView, setCurrentView] = useState<ViewType>('kanban')
   const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS)
@@ -181,51 +179,12 @@ export default function Board() {
     }
   }
 
-  const handleLogout = async () => {
-    await signOut()
-    navigate('/login')
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <Sidebar
-        isOpen={showSidebar}
-        onClose={() => setShowSidebar(false)}
-        currentBoardId={boardId}
-      />
-
-      {/* Main Content */}
+    <MainLayout currentBoardId={boardId}>
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <header className="bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 py-4 md:py-6">
-            <div className="flex justify-between items-center mb-3 md:mb-4">
-              <div className="flex items-center gap-2 md:gap-4">
-                {/* Hamburger Menu Button - Visible on all screens */}
-                <button
-                  onClick={() => setShowSidebar(!showSidebar)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition"
-                  aria-label="Toggle sidebar"
-                >
-                  <svg className="w-5 h-5 md:w-6 md:h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="text-xl md:text-3xl font-bold text-gray-900 hover:text-blue-600 transition"
-                >
-                  TaskFlow
-                </button>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="px-3 py-1.5 md:px-4 md:py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg transition text-sm md:text-base"
-              >
-                Logout
-              </button>
-            </div>
 
           <div className="flex flex-col md:flex-row gap-2 md:gap-4 items-stretch md:items-center">
             {/* View Switcher - Responsive */}
@@ -661,6 +620,6 @@ export default function Board() {
         />
       )}
       </div>
-    </div>
+    </MainLayout>
   )
 }
