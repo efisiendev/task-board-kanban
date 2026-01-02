@@ -59,8 +59,29 @@ export function useTasks(boardId: string) {
           table: 'tasks',
           filter: `board_id=eq.${boardId}`,
         },
-        () => {
+        (payload) => {
+          // Invalidate tasks for this board
           queryClient.invalidateQueries({ queryKey: ['tasks', boardId] })
+          
+          // If it's a DELETE event, also invalidate all related queries for the deleted task
+          if (payload.eventType === 'DELETE' && payload.old?.id) {
+            const taskId = payload.old.id
+            queryClient.invalidateQueries({ queryKey: ['subtasks', taskId] })
+            queryClient.invalidateQueries({ queryKey: ['task-comments', taskId] })
+            queryClient.invalidateQueries({ queryKey: ['task-relations', taskId] })
+            queryClient.invalidateQueries({ queryKey: ['task-pages', taskId] })
+            queryClient.invalidateQueries({ queryKey: ['activity-log', taskId] })
+          }
+          
+          // If it's an INSERT or UPDATE, invalidate queries for the affected task
+          if ((payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') && payload.new?.id) {
+            const taskId = payload.new.id
+            queryClient.invalidateQueries({ queryKey: ['subtasks', taskId] })
+            queryClient.invalidateQueries({ queryKey: ['task-comments', taskId] })
+            queryClient.invalidateQueries({ queryKey: ['task-relations', taskId] })
+            queryClient.invalidateQueries({ queryKey: ['task-pages', taskId] })
+            queryClient.invalidateQueries({ queryKey: ['activity-log', taskId] })
+          }
         }
       )
       .subscribe()
@@ -209,7 +230,13 @@ export function useDeleteTask() {
       if (error) throw error
     },
     onSuccess: (_data: unknown, variables: { id: string; boardId: string }) => {
+      // Invalidate all related queries to ensure realtime sync everywhere
       queryClient.invalidateQueries({ queryKey: ['tasks', variables.boardId] })
+      queryClient.invalidateQueries({ queryKey: ['subtasks', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['task-comments', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['task-relations', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['task-pages', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['activity-log', variables.id] })
     },
   })
 }

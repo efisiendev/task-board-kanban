@@ -33,12 +33,11 @@ export function useTaskPages(taskId: string) {
           table: 'task_pages',
           filter: `task_id=eq.${taskId}`,
         },
-        (payload) => {
+        () => {
           queryClient.invalidateQueries({ queryKey: ['task-pages', taskId] })
         }
       )
-      .subscribe((status) => {
-      })
+      .subscribe()
 
     return () => {
       channel.unsubscribe()

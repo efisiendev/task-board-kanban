@@ -51,7 +51,7 @@ export function useTaskRelations(taskId: string) {
           table: 'task_relations',
           filter: `from_task_id=eq.${taskId}`,
         },
-        (payload) => {
+        () => {
           queryClient.invalidateQueries({ queryKey: ['task-relations', taskId] })
         }
       )
@@ -63,12 +63,11 @@ export function useTaskRelations(taskId: string) {
           table: 'task_relations',
           filter: `to_task_id=eq.${taskId}`,
         },
-        (payload) => {
+        () => {
           queryClient.invalidateQueries({ queryKey: ['task-relations', taskId] })
         }
       )
-      .subscribe((status) => {
-      })
+      .subscribe()
 
     return () => {
       channel.unsubscribe()

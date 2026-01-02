@@ -37,12 +37,11 @@ export function useTaskComments(taskId: string) {
           table: 'task_comments',
           filter: `task_id=eq.${taskId}`,
         },
-        (payload) => {
+        () => {
           queryClient.invalidateQueries({ queryKey: ['task-comments', taskId] })
         }
       )
-      .subscribe((status) => {
-      })
+      .subscribe()
 
     return () => {
       channel.unsubscribe()
@@ -150,12 +149,11 @@ export function useTaskActivity(taskId: string) {
           table: 'task_activity_log',
           filter: `task_id=eq.${taskId}`,
         },
-        (payload) => {
+        () => {
           queryClient.invalidateQueries({ queryKey: ['task-activity', taskId] })
         }
       )
-      .subscribe((status) => {
-      })
+      .subscribe()
 
     return () => {
       channel.unsubscribe()
