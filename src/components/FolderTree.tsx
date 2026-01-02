@@ -1,25 +1,29 @@
 import React, { useState } from 'react'
 import { BoardPage } from '../types'
 
-interface PageTreeProps {
+interface FolderTreeProps {
   pages: BoardPage[]
   selectedPageId: string | null
   onSelectPage: (page: BoardPage | null) => void
   onCreatePage: (parentId: string | null) => void
   onCreateFolder: (parentId: string | null, folderName: string) => void
+  onCreateFile: (parentId: string | null, fileName: string, driveUrl: string, mimeType: string) => void
   onDeletePage: (page: BoardPage) => void
   onRenamePage: (pageId: string, newTitle: string) => void
+  onFileClick: (file: BoardPage) => void
 }
 
-export function PageTree({
+export function FolderTree({
   pages,
   selectedPageId,
   onSelectPage,
   onCreatePage,
   onCreateFolder,
+  onCreateFile,
   onDeletePage,
   onRenamePage,
-}: PageTreeProps) {
+  onFileClick,
+}: FolderTreeProps) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [showNewMenu, setShowNewMenu] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -29,6 +33,9 @@ export function PageTree({
   const [folderNameInput, setFolderNameInput] = useState('')
   const [creatingInFolderId, setCreatingInFolderId] = useState<string | null>(null)
   const [showFolderMenu, setShowFolderMenu] = useState<string | null>(null)
+  const [showFilePrompt, setShowFilePrompt] = useState(false)
+  const [fileNameInput, setFileNameInput] = useState('')
+  const [fileDriveUrlInput, setFileDriveUrlInput] = useState('')
 
   // Filter pages based on search
   const filteredPages = searchQuery.trim()
@@ -111,6 +118,21 @@ export function PageTree({
     }
   }
 
+  const handleFileCreate = () => {
+    if (fileNameInput.trim() && fileDriveUrlInput.trim()) {
+      onCreateFile(creatingInFolderId, fileNameInput.trim(), fileDriveUrlInput.trim(), 'application/vnd.google-apps')
+      setFileNameInput('')
+      setFileDriveUrlInput('')
+      setShowFilePrompt(false)
+      setShowNewMenu(false)
+      setCreatingInFolderId(null)
+      // Auto-expand the parent folder if creating inside
+      if (creatingInFolderId) {
+        setExpandedFolders(prev => new Set(prev).add(creatingInFolderId))
+      }
+    }
+  }
+
   const countChildren = (folderId: string): number => {
     const children = pages.filter(p => p.parent_id === folderId)
     return children.length + children.filter(c => c.type === 'folder').reduce((sum, f) => sum + countChildren(f.id), 0)
@@ -137,6 +159,7 @@ export function PageTree({
 
   const renderTreeItem = (page: BoardPage, level: number = 0) => {
     const isFolder = page.type === 'folder'
+    const isFile = page.type === 'file'
     const isExpanded = expandedFolders.has(page.id)
     const isSelected = selectedPageId === page.id
     const isRenaming = renamingPageId === page.id
@@ -174,7 +197,9 @@ export function PageTree({
           {!isFolder && <div className="w-4" />}
 
           {/* Icon */}
-          <span className="text-sm flex-shrink-0">{isFolder ? '📁' : '📄'}</span>
+          <span className="text-sm flex-shrink-0">
+            {isFolder ? '📁' : isFile ? '🔗' : '📄'}
+          </span>
 
           {/* Title or Rename Input */}
           {isRenaming ? (
@@ -192,7 +217,13 @@ export function PageTree({
             />
           ) : (
             <span
-              onClick={() => !isFolder && onSelectPage(page)}
+              onClick={() => {
+                if (isFile) {
+                  onFileClick(page)
+                } else if (!isFolder) {
+                  onSelectPage(page)
+                }
+              }}
               onDoubleClick={() => handleRenameStart(page)}
               className="flex-1 text-sm truncate"
             >
@@ -226,7 +257,7 @@ export function PageTree({
                         className="fixed inset-0 z-10"
                         onClick={() => setShowFolderMenu(null)}
                       />
-                      <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                      <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
@@ -248,6 +279,17 @@ export function PageTree({
                           className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100"
                         >
                           <span>📁</span> New Subfolder
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setCreatingInFolderId(page.id)
+                            setShowFilePrompt(true)
+                            setShowFolderMenu(null)
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100"
+                        >
+                          <span>🔗</span> Add Google Drive File
                         </button>
                       </div>
                     </>
@@ -325,7 +367,7 @@ export function PageTree({
                   className="fixed inset-0 z-10"
                   onClick={() => setShowNewMenu(false)}
                 />
-                <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
                   <button
                     onClick={() => {
                       onCreatePage(null)
@@ -344,6 +386,16 @@ export function PageTree({
                     className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100"
                   >
                     <span>📁</span> New Folder
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCreatingInFolderId(null)
+                      setShowFilePrompt(true)
+                      setShowNewMenu(false)
+                    }}
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100"
+                  >
+                    <span>🔗</span> Add Google Drive File
                   </button>
                 </div>
               </>
@@ -417,6 +469,73 @@ export function PageTree({
                 className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Google Drive File Modal */}
+      {showFilePrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-96">
+            <h3 className="text-lg font-semibold mb-4">Add Google Drive File</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">File Name</label>
+                <input
+                  type="text"
+                  value={fileNameInput}
+                  onChange={(e) => setFileNameInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleFileCreate()
+                    if (e.key === 'Escape') {
+                      setShowFilePrompt(false)
+                      setFileNameInput('')
+                      setFileDriveUrlInput('')
+                    }
+                  }}
+                  placeholder="My Document"
+                  autoFocus
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Google Drive URL</label>
+                <input
+                  type="url"
+                  value={fileDriveUrlInput}
+                  onChange={(e) => setFileDriveUrlInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleFileCreate()
+                    if (e.key === 'Escape') {
+                      setShowFilePrompt(false)
+                      setFileNameInput('')
+                      setFileDriveUrlInput('')
+                    }
+                  }}
+                  placeholder="https://drive.google.com/file/d/..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6 justify-end">
+              <button
+                onClick={() => {
+                  setShowFilePrompt(false)
+                  setFileNameInput('')
+                  setFileDriveUrlInput('')
+                }}
+                className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFileCreate}
+                disabled={!fileNameInput.trim() || !fileDriveUrlInput.trim()}
+                className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Add File
               </button>
             </div>
           </div>

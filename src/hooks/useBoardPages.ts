@@ -74,6 +74,9 @@ export function useCreateBoardPage() {
       title: string
       type: BoardPageType
       content?: string | null
+      storage_path?: string | null
+      mime_type?: string | null
+      file_size?: number | null
     }) => {
       // Get max position for ordering
       const { data: pages } = await supabase
@@ -86,16 +89,31 @@ export function useCreateBoardPage() {
 
       const maxPosition = pages && pages.length > 0 ? pages[0].position : -1
 
+      const insertData: any = {
+        board_id: params.board_id,
+        parent_id: params.parent_id || null,
+        title: params.title,
+        type: params.type,
+        position: maxPosition + 1,
+      }
+
+      // Add content for pages
+      if (params.type === 'page') {
+        insertData.content = params.content || null
+      }
+
+      // Add file-specific fields for files
+      if (params.type === 'file') {
+        insertData.storage_path = params.storage_path
+        insertData.mime_type = params.mime_type
+        if (params.file_size !== undefined) {
+          insertData.file_size = params.file_size
+        }
+      }
+
       const { data, error } = await supabase
         .from('board_pages')
-        .insert({
-          board_id: params.board_id,
-          parent_id: params.parent_id || null,
-          title: params.title,
-          type: params.type,
-          content: params.content || null,
-          position: maxPosition + 1,
-        })
+        .insert(insertData)
         .select()
         .single()
 

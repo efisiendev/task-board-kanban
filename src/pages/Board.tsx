@@ -10,8 +10,9 @@ import KanbanBoard from '../components/KanbanBoard'
 import { TableView } from '../components/TableView'
 import { ListView } from '../components/ListView'
 import { CalendarView } from '../components/CalendarView'
-import { PageTree } from '../components/PageTree'
+import { FolderTree } from '../components/FolderTree'
 import { PageModal } from '../components/PageModal'
+import { FilePreviewModal } from '../components/FilePreviewModal'
 import TaskModal, { TaskFormData } from '../components/TaskModal'
 import BoardMembers from '../components/BoardMembers'
 import BoardStatusManager from '../components/BoardStatusManager'
@@ -48,6 +49,7 @@ export default function Board() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [selectedPage, setSelectedPage] = useState<BoardPage | null>(null)
+  const [selectedFile, setSelectedFile] = useState<BoardPage | null>(null)
   const [initialStatusId, setInitialStatusId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [showMembers, setShowMembers] = useState(false)
@@ -426,7 +428,7 @@ export default function Board() {
                     ✕ Close
                   </button>
                   <div className="h-[calc(100%-2rem)] md:h-full bg-white rounded-lg border border-gray-200 overflow-hidden">
-                    <PageTree
+                    <FolderTree
                       pages={pages}
                       selectedPageId={selectedPage?.id || null}
                       onSelectPage={(page) => {
@@ -460,6 +462,20 @@ export default function Board() {
                           console.error('Failed to create folder:', error)
                         }
                       }}
+                      onCreateFile={async (parentId, fileName, driveUrl, mimeType) => {
+                        try {
+                          await createPageMutation.mutateAsync({
+                            board_id: boardId!,
+                            parent_id: parentId,
+                            title: fileName,
+                            type: 'file',
+                            storage_path: driveUrl,
+                            mime_type: mimeType,
+                          })
+                        } catch (error) {
+                          console.error('Failed to create file:', error)
+                        }
+                      }}
                       onDeletePage={async (page) => {
                         try {
                           await deletePageMutation.mutateAsync({
@@ -480,6 +496,10 @@ export default function Board() {
                         } catch (error) {
                           console.error('Failed to rename page:', error)
                         }
+                      }}
+                      onFileClick={(file) => {
+                        setSelectedFile(file)
+                        setShowPages(false) // Close sidebar on mobile
                       }}
                     />
                   </div>
@@ -630,6 +650,14 @@ export default function Board() {
           pageId={selectedPage.id}
           boardId={boardId!}
           onClose={() => setSelectedPage(null)}
+        />
+      )}
+
+      {/* File Preview Modal */}
+      {selectedFile && (
+        <FilePreviewModal
+          file={selectedFile}
+          onClose={() => setSelectedFile(null)}
         />
       )}
       </div>

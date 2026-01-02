@@ -154,7 +154,7 @@ export interface BoardMemberWithProfile extends BoardMember {
   user_profiles?: UserProfile | null
 }
 
-export type BoardPageType = 'folder' | 'page'
+export type BoardPageType = 'folder' | 'page' | 'file'
 
 export interface BoardPage {
   id: string
@@ -167,4 +167,8 @@ export interface BoardPage {
   created_by: string | null
   created_at: string
   updated_at: string
+  // File-specific fields (only for type='file')
+  storage_path?: string | null
+  mime_type?: string | null
+  file_size?: number | null
 }
