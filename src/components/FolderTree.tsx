@@ -36,6 +36,7 @@ export function FolderTree({
   const [showFilePrompt, setShowFilePrompt] = useState(false)
   const [fileNameInput, setFileNameInput] = useState('')
   const [fileDriveUrlInput, setFileDriveUrlInput] = useState('')
+  const [isCreating, setIsCreating] = useState(false)
 
   // Filter pages based on search
   const filteredPages = searchQuery.trim()
@@ -104,31 +105,41 @@ export function FolderTree({
     setRenameValue('')
   }
 
-  const handleFolderCreate = () => {
-    if (folderNameInput.trim()) {
-      onCreateFolder(creatingInFolderId, folderNameInput.trim())
-      setFolderNameInput('')
-      setShowFolderPrompt(false)
-      setShowNewMenu(false)
-      setCreatingInFolderId(null)
-      // Auto-expand the parent folder if creating inside
-      if (creatingInFolderId) {
-        setExpandedFolders(prev => new Set(prev).add(creatingInFolderId))
+  const handleFolderCreate = async () => {
+    if (folderNameInput.trim() && !isCreating) {
+      setIsCreating(true)
+      try {
+        await onCreateFolder(creatingInFolderId, folderNameInput.trim())
+        setFolderNameInput('')
+        setShowFolderPrompt(false)
+        setShowNewMenu(false)
+        setCreatingInFolderId(null)
+        // Auto-expand the parent folder if creating inside
+        if (creatingInFolderId) {
+          setExpandedFolders(prev => new Set(prev).add(creatingInFolderId))
+        }
+      } finally {
+        setIsCreating(false)
       }
     }
   }
 
-  const handleFileCreate = () => {
-    if (fileNameInput.trim() && fileDriveUrlInput.trim()) {
-      onCreateFile(creatingInFolderId, fileNameInput.trim(), fileDriveUrlInput.trim(), 'application/vnd.google-apps')
-      setFileNameInput('')
-      setFileDriveUrlInput('')
-      setShowFilePrompt(false)
-      setShowNewMenu(false)
-      setCreatingInFolderId(null)
-      // Auto-expand the parent folder if creating inside
-      if (creatingInFolderId) {
-        setExpandedFolders(prev => new Set(prev).add(creatingInFolderId))
+  const handleFileCreate = async () => {
+    if (fileNameInput.trim() && fileDriveUrlInput.trim() && !isCreating) {
+      setIsCreating(true)
+      try {
+        await onCreateFile(creatingInFolderId, fileNameInput.trim(), fileDriveUrlInput.trim(), 'application/vnd.google-apps')
+        setFileNameInput('')
+        setFileDriveUrlInput('')
+        setShowFilePrompt(false)
+        setShowNewMenu(false)
+        setCreatingInFolderId(null)
+        // Auto-expand the parent folder if creating inside
+        if (creatingInFolderId) {
+          setExpandedFolders(prev => new Set(prev).add(creatingInFolderId))
+        }
+      } finally {
+        setIsCreating(false)
       }
     }
   }
@@ -443,8 +454,12 @@ export function FolderTree({
               value={folderNameInput}
               onChange={(e) => setFolderNameInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleFolderCreate()
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleFolderCreate()
+                }
                 if (e.key === 'Escape') {
+                  e.preventDefault()
                   setShowFolderPrompt(false)
                   setFolderNameInput('')
                 }
@@ -465,10 +480,10 @@ export function FolderTree({
               </button>
               <button
                 onClick={handleFolderCreate}
-                disabled={!folderNameInput.trim()}
+                disabled={!folderNameInput.trim() || isCreating}
                 className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Create
+                {isCreating ? 'Creating...' : 'Create'}
               </button>
             </div>
           </div>
@@ -532,10 +547,10 @@ export function FolderTree({
               </button>
               <button
                 onClick={handleFileCreate}
-                disabled={!fileNameInput.trim() || !fileDriveUrlInput.trim()}
+                disabled={!fileNameInput.trim() || !fileDriveUrlInput.trim() || isCreating}
                 className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Add File
+                {isCreating ? 'Adding...' : 'Add File'}
               </button>
             </div>
           </div>
