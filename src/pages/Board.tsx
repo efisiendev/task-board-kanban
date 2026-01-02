@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '../hooks/useTasks'
+import { useTasks, useUpdateTask } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
 import { useBoards } from '../hooks/useBoards'
 import { useBoardMembers } from '../hooks/useBoardMembers'
 import { useBoardStatuses } from '../hooks/useBoardStatuses'
 import { useBatchUserProfiles } from '../hooks/useBatchUserProfiles'
+import { useTaskFiltering } from '../hooks/useTaskFiltering'
+import { useTaskOperations } from '../hooks/useTaskOperations'
 import KanbanBoard from '../components/KanbanBoard'
 import { TableView } from '../components/TableView'
 import { ListView } from '../components/ListView'
@@ -13,10 +15,13 @@ import { CalendarView } from '../components/CalendarView'
 import { FolderTree } from '../components/FolderTree'
 import { PageModal } from '../components/PageModal'
 import { FilePreviewModal } from '../components/FilePreviewModal'
-import TaskModal, { TaskFormData } from '../components/TaskModal'
+import TaskModal from '../components/TaskModal'
 import BoardMembers from '../components/BoardMembers'
-import BoardStatusManager from '../components/BoardStatusManager'
 import { FilterSidebar, TaskFilters } from '../components/FilterSidebar'
+import { ViewSwitcher } from '../components/ViewSwitcher'
+import { HeaderActionButtons } from '../components/HeaderActionButtons'
+import { NewTaskDropdown } from '../components/NewTaskDropdown'
+import { SettingsOverlay } from '../components/SettingsOverlay'
 import { MainLayout } from '../components/MainLayout'
 import { Task, BoardPage } from '../types'
 import { useBoardPages, useCreateBoardPage, useUpdateBoardPage, useDeleteBoardPage } from '../hooks/useBoardPages'
@@ -40,9 +45,6 @@ export default function Board() {
   const { data: tasks = [], isLoading } = useTasks(boardId!)
   useBoardMembers(boardId!) // Keep data in cache
   const { data: statuses = [] } = useBoardStatuses(boardId!)
-  const createTaskMutation = useCreateTask()
-  const updateTaskMutation = useUpdateTask()
-  const deleteTaskMutation = useDeleteTask()
   const { data: pages = [] } = useBoardPages(boardId!)
   const createPageMutation = useCreateBoardPage()
   const updatePageMutation = useUpdateBoardPage()
@@ -80,106 +82,28 @@ export default function Board() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasks])
 
-  // Apply search and filters (memoized for performance)
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      // Search filter
-      const matchesSearch =
-        !searchQuery ||
-        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  // Use extracted filtering hook
+  const filteredTasks = useTaskFiltering(tasks, searchQuery, filters)
 
-      // Status filter (using status_id)
-      const matchesStatus = filters.status.length === 0 || filters.status.includes(task.status_id)
+  // Use extracted task operations hook
+  const {
+    handleCreateTask,
+    handleAddTaskFromColumn,
+    handleDeleteTaskFromCard,
+    handleQuickEditTask,
+    handleUpdateTask,
+    handleDeleteTask,
+  } = useTaskOperations({
+    boardId: boardId!,
+    editingTask,
+    setEditingTask,
+    setIsModalOpen,
+    initialStatusId,
+    setInitialStatusId,
+  })
 
-      // Priority filter
-      const matchesPriority = filters.priority.length === 0 || (task.priority && filters.priority.includes(task.priority))
-
-      // Assignee filter
-      const matchesAssignee =
-        filters.assignee.length === 0 ||
-        (filters.assignee.includes('unassigned') && !task.assigned_to) ||
-        (task.assigned_to && filters.assignee.includes(task.assigned_to))
-
-      // Has labels filter
-      const matchesHasLabels =
-        filters.hasLabels === null ||
-        (filters.hasLabels === true && task.labels && task.labels.length > 0)
-
-      // Overdue filter
-      const matchesOverdue =
-        filters.isOverdue === null ||
-        (filters.isOverdue === true && task.due_date && new Date(task.due_date) < new Date() && task.board_status?.name !== 'Done')
-
-      return matchesSearch && matchesStatus && matchesPriority && matchesAssignee && matchesHasLabels && matchesOverdue
-    })
-  }, [tasks, searchQuery, filters])
-
-  const handleCreateTask = async (data: TaskFormData) => {
-    try {
-      await createTaskMutation.mutateAsync({
-        boardId: boardId!,
-        status_id: initialStatusId || undefined,
-        ...data,
-      })
-      setIsModalOpen(false)
-      setInitialStatusId(null)
-    } catch (error) {
-      console.error('Failed to create task:', error)
-    }
-  }
-
-  const handleAddTaskFromColumn = (statusId: string) => {
-    setInitialStatusId(statusId)
-    setEditingTask(null)
-    setIsModalOpen(true)
-  }
-
-  const handleDeleteTaskFromCard = async (taskId: string) => {
-    try {
-      await deleteTaskMutation.mutateAsync({ id: taskId, boardId: boardId! })
-    } catch (error) {
-      console.error('Failed to delete task:', error)
-    }
-  }
-
-  const handleQuickEditTask = async (taskId: string, newTitle: string) => {
-    try {
-      await updateTaskMutation.mutateAsync({
-        id: taskId,
-        boardId: boardId!,
-        title: newTitle,
-      })
-    } catch (error) {
-      console.error('Failed to update task title:', error)
-    }
-  }
-
-  const handleUpdateTask = async (data: TaskFormData) => {
-    if (!editingTask) return
-    try {
-      await updateTaskMutation.mutateAsync({
-        id: editingTask.id,
-        boardId: boardId!,
-        ...data,
-      })
-      setEditingTask(null)
-      setIsModalOpen(false)
-    } catch (error) {
-      console.error('Failed to update task:', error)
-    }
-  }
-
-  const handleDeleteTask = async () => {
-    if (!editingTask) return
-    try {
-      await deleteTaskMutation.mutateAsync({ id: editingTask.id, boardId: boardId! })
-      setEditingTask(null)
-      setIsModalOpen(false)
-    } catch (error) {
-      console.error('Failed to delete task:', error)
-    }
-  }
+  // For drag-and-drop task moves (used in KanbanBoard)
+  const updateTaskMutation = useUpdateTask()
 
   return (
     <MainLayout currentBoardId={boardId}>
@@ -189,53 +113,8 @@ export default function Board() {
           <div className="max-w-7xl mx-auto px-4 py-4 md:py-6">
 
           <div className="flex flex-col md:flex-row gap-2 md:gap-4 items-stretch md:items-center">
-            {/* View Switcher - Responsive */}
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg overflow-x-auto">
-              <button
-                onClick={() => setCurrentView('kanban')}
-                className={`px-2 md:px-3 py-1.5 rounded text-xs md:text-sm font-medium transition whitespace-nowrap ${
-                  currentView === 'kanban'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <span className="hidden sm:inline">📊 Kanban</span>
-                <span className="sm:hidden">📊</span>
-              </button>
-              <button
-                onClick={() => setCurrentView('table')}
-                className={`px-2 md:px-3 py-1.5 rounded text-xs md:text-sm font-medium transition whitespace-nowrap ${
-                  currentView === 'table'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <span className="hidden sm:inline">📋 Table</span>
-                <span className="sm:hidden">📋</span>
-              </button>
-              <button
-                onClick={() => setCurrentView('list')}
-                className={`px-2 md:px-3 py-1.5 rounded text-xs md:text-sm font-medium transition whitespace-nowrap ${
-                  currentView === 'list'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <span className="hidden sm:inline">📝 List</span>
-                <span className="sm:hidden">📝</span>
-              </button>
-              <button
-                onClick={() => setCurrentView('calendar')}
-                className={`px-2 md:px-3 py-1.5 rounded text-xs md:text-sm font-medium transition whitespace-nowrap ${
-                  currentView === 'calendar'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <span className="hidden sm:inline">📅 Calendar</span>
-                <span className="sm:hidden">📅</span>
-              </button>
-            </div>
+            {/* View Switcher */}
+            <ViewSwitcher currentView={currentView} onViewChange={setCurrentView} />
 
             {/* Search - full width on mobile */}
             <input
@@ -246,43 +125,15 @@ export default function Board() {
               className="flex-1 w-full md:w-auto px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base"
             />
             
-            {/* Action buttons - compact on mobile */}
-            <div className="flex gap-2 md:gap-4">
-              <button
-                onClick={showFilters.toggle}
-                className={`px-3 md:px-4 py-2 rounded-lg font-medium transition text-sm md:text-base ${
-                  showFilters.isOpen
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
-                }`}
-              >
-                <span className="md:hidden">🔍</span>
-                <span className="hidden md:inline">🔍 Filter</span>
-              </button>
-              <button
-                onClick={showMembers.toggle}
-                className={`px-3 md:px-4 py-2 rounded-lg font-medium transition text-sm md:text-base ${
-                  showMembers.isOpen
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
-                }`}
-              >
-                <span className="md:hidden">👥</span>
-                <span className="hidden md:inline">👥 Members</span>
-              </button>
-              <button
-                onClick={showPages.toggle}
-                className={`px-3 md:px-4 py-2 rounded-lg font-medium transition text-sm md:text-base ${
-                  showPages.isOpen
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
-                }`}
-              >
-                <span className="md:hidden">📄</span>
-                <span className="hidden md:inline">📄 Files & Folders</span>
-              </button>
-              {/* New Dropdown Menu */}
-              <div className="relative">
+            {/* Action buttons */}
+            <HeaderActionButtons
+              showFilters={showFilters}
+              showMembers={showMembers}
+              showPages={showPages}
+            />
+
+            {/* New Dropdown Menu */}
+            <div className="relative">
               <button
                 onClick={showNewMenu.toggle}
                 className="px-4 md:px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition flex items-center gap-1 md:gap-2 text-sm md:text-base"
@@ -294,49 +145,25 @@ export default function Board() {
                 </svg>
               </button>
 
-              {/* Dropdown Menu */}
-              {showNewMenu.isOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={showNewMenu.close}
-                  />
-                  <div className="fixed md:absolute right-4 md:right-0 top-auto md:top-auto mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                    <button
-                      onClick={() => {
-                        setEditingTask(null)
-                        setInitialStatusId(null)
-                        setIsModalOpen(true)
-                        showNewMenu.close()
-                      }}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-gray-700"
-                    >
-                      <span className="text-lg">📝</span>
-                      New Task
-                    </button>
-                    {isOwner && (
-                      <>
-                        <div className="border-t border-gray-200 my-1" />
-                        <button
-                          onClick={() => {
-                            showStatuses.open()
-                            showNewMenu.close()
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-gray-700"
-                        >
-                          <span className="text-lg">⚙️</span>
-                          Board Settings
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
+              <NewTaskDropdown
+                isOpen={showNewMenu.isOpen}
+                isOwner={isOwner}
+                onClose={showNewMenu.close}
+                onNewTask={() => {
+                  setEditingTask(null)
+                  setInitialStatusId(null)
+                  setIsModalOpen(true)
+                  showNewMenu.close()
+                }}
+                onSettings={() => {
+                  showStatuses.open()
+                  showNewMenu.close()
+                }}
+              />
             </div>
           </div>
-        </div>
-      </header>
+          </div>
+        </header>
 
       {/* Main Content */}
       <main className="w-full py-6 md:py-12">
@@ -522,28 +349,12 @@ export default function Board() {
       </main>
 
       {/* Settings Sidebar (Full Overlay) */}
-      {showStatuses.isOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-20 z-40"
-            onClick={showStatuses.close}
-          />
-          <div className="fixed top-0 right-0 h-full w-full md:w-96 bg-white shadow-2xl z-50 overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Board Settings</h2>
-              <button
-                onClick={showStatuses.close}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-6">
-              <BoardStatusManager boardId={boardId!} isOwner={isOwner} />
-            </div>
-          </div>
-        </>
-      )}
+      <SettingsOverlay
+        isOpen={showStatuses.isOpen}
+        boardId={boardId!}
+        isOwner={isOwner}
+        onClose={showStatuses.close}
+      />
 
       {/* Task Modal */}
       {isModalOpen && (
