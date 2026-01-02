@@ -18,10 +18,12 @@ export function useTaskPages(taskId: string) {
       if (error) throw error
       return data as TaskPage[]
     },
+    enabled: !!taskId, // Only run query if taskId is not empty
   })
 
   // Real-time subscription for pages
   useEffect(() => {
+    if (!taskId) return // Don't subscribe if taskId is empty
 
     const channel = supabase
       .channel(`task-pages:${taskId}`)
@@ -33,12 +35,11 @@ export function useTaskPages(taskId: string) {
           table: 'task_pages',
           filter: `task_id=eq.${taskId}`,
         },
-        (payload) => {
+        () => {
           queryClient.invalidateQueries({ queryKey: ['task-pages', taskId] })
         }
       )
-      .subscribe((status) => {
-      })
+      .subscribe()
 
     return () => {
       channel.unsubscribe()

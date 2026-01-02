@@ -1,8 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef, useEffect } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { Task, UserProfile } from '../types'
 import { useProfileFromBatch } from '../hooks/useBatchUserProfiles'
 import { useSubtasks } from '../hooks/useSubtasks'
+import { useToggle } from '../hooks/useToggle'
+import { ConfirmDialog } from './ConfirmDialog'
+import { createPortal } from 'react-dom'
 
 interface TaskCardProps {
   task: Task
@@ -28,6 +31,9 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
   const [showMenu, setShowMenu] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(task.title)
+  const showDeleteConfirm = useToggle()
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 })
 
   // Get assignee profile from batched data
   const assigneeProfile = useProfileFromBatch(task.assigned_to, userProfiles)
@@ -62,11 +68,29 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
     alert('Link copied to clipboard!')
   }
 
+  const handleToggleMenu = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!showMenu && menuButtonRef.current) {
+      const rect = menuButtonRef.current.getBoundingClientRect()
+      setMenuPosition({
+        top: rect.bottom + window.scrollY,
+        right: window.innerWidth - rect.right
+      })
+    }
+    setShowMenu(!showMenu)
+  }
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!showMenu) return
+    const handleClickOutside = () => setShowMenu(false)
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [showMenu])
+
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (confirm('Delete this task?') && onDelete) {
-      onDelete(task.id)
-    }
+    showDeleteConfirm.open()
     setShowMenu(false)
   }
 
@@ -120,6 +144,7 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
   }), [subtaskItems])
 
   return (
+    <>
     <div
       ref={setNodeRef}
       {...attributes}
@@ -162,10 +187,8 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
           {!simplified && (
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowMenu(!showMenu)
-              }}
+              ref={menuButtonRef}
+              onClick={handleToggleMenu}
               className="p-1 hover:bg-gray-100 rounded transition opacity-0 group-hover:opacity-100"
             >
               <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 16 16">
@@ -175,13 +198,19 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
               </svg>
             </button>
 
-            {showMenu && (
+            {showMenu && createPortal(
               <>
                 <div
-                  className="fixed inset-0 z-10"
+                  className="fixed inset-0 z-40"
                   onClick={() => setShowMenu(false)}
                 />
-                <div className="absolute right-0 top-6 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                <div 
+                  className="fixed w-40 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50" 
+                  style={{
+                    top: `${menuPosition.top}px`,
+                    right: `${menuPosition.right}px`
+                  }}
+                >
                   <button
                     onClick={handleStartEdit}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
@@ -209,7 +238,8 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
                     </>
                   )}
                 </div>
-              </>
+              </>,
+              document.body
             )}
           </div>
           )}
@@ -257,5 +287,36 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
         </div>
       )}
     </div>
+
+    {/* Delete Confirmation Dialog */}
+    <ConfirmDialog
+      isOpen={showDeleteConfirm.isOpen}
+      title="Delete Task?"
+      icon="⚠️"
+      message={
+        <div className="space-y-2">
+          <p>This will <strong>permanently delete</strong>:</p>
+          <ul className="list-disc list-inside space-y-1 text-gray-600">
+            <li>Task "<strong>{task.title}</strong>"</li>
+            <li>All subtasks</li>
+            <li>All comments and activity history</li>
+            <li>All attachments and pages</li>
+          </ul>
+          <p className="text-red-600 font-medium mt-3">
+            This action cannot be undone.
+          </p>
+        </div>
+      }
+      confirmText="Delete Task"
+      confirmButtonClass="bg-red-600 hover:bg-red-700"
+      requireTextConfirm={true}
+      textToConfirm={task.title}
+      onConfirm={() => {
+        if (onDelete) onDelete(task.id)
+        showDeleteConfirm.close()
+      }}
+      onCancel={showDeleteConfirm.close}
+    />
+  </>
   )
 }

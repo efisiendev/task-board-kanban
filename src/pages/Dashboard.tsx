@@ -8,7 +8,12 @@ import { getRelativeTime } from '../utils/timeUtils'
 import { useCalendarEventsByRange } from '../hooks/useCalendarEvents'
 import { CalendarMonth } from '../components/CalendarMonth'
 import { EventDetailSidebar } from '../components/EventDetailSidebar'
-import { CalendarEvent } from '../types'
+import { DEFAULTS } from '../constants/theme'
+import { useToggle } from '../hooks/useToggle'
+import { useCalendarSelection } from '../hooks/useCalendarSelection'
+import { ColorPicker } from '../components/ui/ColorPicker'
+import { Modal, ModalHeader, ModalContent, ModalFooter } from '../components/ui/Modal'
+import { Button } from '../components/ui/Button'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -19,16 +24,14 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [newBoardName, setNewBoardName] = useState('')
   const [newBoardDescription, setNewBoardDescription] = useState('')
-  const [newBoardColor, setNewBoardColor] = useState('#3B82F6') // Default blue
-  const [showForm, setShowForm] = useState(false)
+  const [newBoardColor, setNewBoardColor] = useState<string>(DEFAULTS.boardColor)
+  const showForm = useToggle()
   const [editingBoard, setEditingBoard] = useState<{ id: string; name: string; description: string | null; color: string } | null>(null)
   const [deletingBoard, setDeletingBoard] = useState<{ id: string; name: string } | null>(null)
   const [leavingBoard, setLeavingBoard] = useState<{ id: string; name: string; ownerEmail: string } | null>(null)
 
   // Calendar event states
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
-  const [isCreatingEvent, setIsCreatingEvent] = useState(false)
+  const calendar = useCalendarSelection()
 
   // Get current month events
   const currentDate = new Date()
@@ -37,18 +40,6 @@ export default function Dashboard() {
   const startOfMonth = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0]
   const endOfMonth = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0]
   const { data: monthEvents = [] } = useCalendarEventsByRange(startOfMonth, endOfMonth)
-
-  // Predefined color options
-  const colorOptions = [
-    { name: 'Blue', hex: '#3B82F6' },
-    { name: 'Green', hex: '#10B981' },
-    { name: 'Purple', hex: '#8B5CF6' },
-    { name: 'Red', hex: '#EF4444' },
-    { name: 'Orange', hex: '#F59E0B' },
-    { name: 'Pink', hex: '#EC4899' },
-    { name: 'Indigo', hex: '#6366F1' },
-    { name: 'Teal', hex: '#14B8A6' },
-  ]
 
   const handleCreateBoard = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,8 +53,8 @@ export default function Dashboard() {
       })
       setNewBoardName('')
       setNewBoardDescription('')
-      setNewBoardColor('#3B82F6')
-      setShowForm(false)
+      setNewBoardColor(DEFAULTS.boardColor)
+      showForm.close()
     } catch (error) {
       console.error('Failed to create project:', error)
     }
@@ -105,29 +96,6 @@ export default function Dashboard() {
     }
   }
 
-  const handleDateClick = (date: Date) => {
-    setSelectedDate(date)
-    setSelectedEvent(null)
-    setIsCreatingEvent(false)
-  }
-
-  const handleEventClick = (event: CalendarEvent) => {
-    setSelectedEvent(event)
-    setSelectedDate(null)
-    setIsCreatingEvent(false)
-  }
-
-  const handleCreateEvent = (date: Date) => {
-    setSelectedDate(date)
-    setIsCreatingEvent(true)
-    setSelectedEvent(null)
-  }
-
-  const handleCloseSidebar = () => {
-    setSelectedDate(null)
-    setSelectedEvent(null)
-    setIsCreatingEvent(false)
-  }
 
   return (
     <MainLayout
@@ -142,9 +110,9 @@ export default function Dashboard() {
           <main className="max-w-7xl mx-auto px-4 py-6 md:py-12 w-full">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold text-gray-900">My Projects</h2>
-          {!showForm && (
+          {!showForm.isOpen && (
             <button
-              onClick={() => setShowForm(true)}
+              onClick={showForm.open}
               className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition"
             >
               New Project
@@ -174,15 +142,15 @@ export default function Dashboard() {
               year={currentYear}
               month={currentMonth}
               events={monthEvents}
-              onDateClick={handleDateClick}
-              onEventClick={handleEventClick}
-              onCreateEvent={handleCreateEvent}
+              onDateClick={calendar.handleDateClick}
+              onEventClick={calendar.handleEventClick}
+              onCreateEvent={calendar.handleCreateEvent}
             />
           </div>
         </div>
 
         {/* New Project Form */}
-        {showForm && (
+        {showForm.isOpen && (
           <div className="mb-8 p-6 bg-white rounded-lg border border-gray-200">
             <form onSubmit={handleCreateBoard} className="space-y-4">
               <div>
@@ -208,43 +176,30 @@ export default function Dashboard() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Project Color</label>
-                <div className="flex gap-2">
-                  {colorOptions.map((color) => (
-                    <button
-                      key={color.hex}
-                      type="button"
-                      onClick={() => setNewBoardColor(color.hex)}
-                      className={`w-10 h-10 rounded-lg transition ${
-                        newBoardColor === color.hex
-                          ? 'ring-2 ring-offset-2 ring-gray-900'
-                          : 'hover:scale-110'
-                      }`}
-                      style={{ backgroundColor: color.hex }}
-                      title={color.name}
-                    />
-                  ))}
-                </div>
+                <ColorPicker value={newBoardColor} onChange={setNewBoardColor} />
               </div>
               <div className="flex gap-4">
-                <button
+                <Button
                   type="submit"
                   disabled={createBoardMutation.isPending}
-                  className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition disabled:opacity-50"
+                  variant="primary"
+                  size="lg"
                 >
                   Create Project
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => {
-                    setShowForm(false)
+                    showForm.close()
                     setNewBoardName('')
                     setNewBoardDescription('')
-                    setNewBoardColor('#3B82F6')
+                    setNewBoardColor(DEFAULTS.boardColor)
                   }}
-                  className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-900 rounded-lg font-medium transition"
+                  variant="secondary"
+                  size="lg"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -357,13 +312,13 @@ export default function Dashboard() {
         </div>
 
         {/* Event Detail Sidebar */}
-        {(selectedDate || selectedEvent) && (
+        {(calendar.selectedDate || calendar.selectedEvent) && (
           <EventDetailSidebar
-            date={selectedDate}
-            event={selectedEvent}
-            isCreating={isCreatingEvent}
+            date={calendar.selectedDate}
+            event={calendar.selectedEvent}
+            isCreating={calendar.isCreatingEvent}
             events={monthEvents}
-            onClose={handleCloseSidebar}
+            onClose={calendar.handleClose}
           />
         )}
       </div>
@@ -419,10 +374,10 @@ export default function Dashboard() {
       />
 
       {/* Edit Project Modal */}
-      {editingBoard && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Edit Project</h3>
+      <Modal isOpen={!!editingBoard} onClose={() => setEditingBoard(null)} size="lg">
+        <ModalHeader title="Edit Project" onClose={() => setEditingBoard(null)} />
+        <ModalContent>
+          {editingBoard && (
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Project Name</label>
@@ -446,42 +401,27 @@ export default function Dashboard() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Project Color</label>
-                <div className="flex gap-2">
-                  {colorOptions.map((color) => (
-                    <button
-                      key={color.hex}
-                      type="button"
-                      onClick={() => setEditingBoard({ ...editingBoard, color: color.hex })}
-                      className={`w-10 h-10 rounded-lg transition ${
-                        editingBoard.color === color.hex
-                          ? 'ring-2 ring-offset-2 ring-gray-900'
-                          : 'hover:scale-110'
-                      }`}
-                      style={{ backgroundColor: color.hex }}
-                      title={color.name}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="flex gap-3 justify-end pt-4">
-                <button
-                  onClick={() => setEditingBoard(null)}
-                  className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdateBoard}
-                  disabled={updateBoardMutation.isPending}
-                  className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-                >
-                  Save Changes
-                </button>
+                <ColorPicker
+                  value={editingBoard.color}
+                  onChange={(color) => setEditingBoard({ ...editingBoard, color })}
+                />
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
+        </ModalContent>
+        <ModalFooter>
+          <Button onClick={() => setEditingBoard(null)} variant="secondary">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleUpdateBoard}
+            disabled={updateBoardMutation.isPending}
+            variant="primary"
+          >
+            Save Changes
+          </Button>
+        </ModalFooter>
+      </Modal>
     </MainLayout>
   )
 }

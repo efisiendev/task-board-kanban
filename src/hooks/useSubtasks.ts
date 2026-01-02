@@ -18,10 +18,12 @@ export function useSubtasks(taskId: string) {
       if (error) throw error
       return data as Subtask[]
     },
+    enabled: !!taskId, // Only run query if taskId is not empty
   })
 
   // Real-time subscription for subtasks (from tasks table where parent_task_id is set)
   useEffect(() => {
+    if (!taskId) return // Don't subscribe if taskId is empty
 
     const channel = supabase
       .channel(`task-subtasks:${taskId}`)

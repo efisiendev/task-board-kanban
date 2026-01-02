@@ -36,10 +36,12 @@ export function useTaskRelations(taskId: string) {
         incoming: (incoming || []) as TaskRelation[],
       }
     },
+    enabled: !!taskId, // Only run query if taskId is not empty
   })
 
   // Real-time subscription
   useEffect(() => {
+    if (!taskId) return // Don't subscribe if taskId is empty
 
     const channel = supabase
       .channel(`task-relations:${taskId}`)
@@ -51,7 +53,7 @@ export function useTaskRelations(taskId: string) {
           table: 'task_relations',
           filter: `from_task_id=eq.${taskId}`,
         },
-        (payload) => {
+        () => {
           queryClient.invalidateQueries({ queryKey: ['task-relations', taskId] })
         }
       )
@@ -63,12 +65,11 @@ export function useTaskRelations(taskId: string) {
           table: 'task_relations',
           filter: `to_task_id=eq.${taskId}`,
         },
-        (payload) => {
+        () => {
           queryClient.invalidateQueries({ queryKey: ['task-relations', taskId] })
         }
       )
-      .subscribe((status) => {
-      })
+      .subscribe()
 
     return () => {
       channel.unsubscribe()
@@ -118,7 +119,7 @@ export function useDeleteTaskRelation() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ id, fromTaskId, toTaskId }: { id: string; fromTaskId: string; toTaskId: string }) => {
+    mutationFn: async ({ id }: { id: string; fromTaskId: string; toTaskId: string }) => {
       const { error } = await supabase
         .from('task_relations')
         .delete()

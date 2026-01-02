@@ -43,11 +43,18 @@ export function CalendarMonth({
   // Get events for a specific date
   const getEventsForDate = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    return events.filter((event) => {
+    const filtered = events.filter((event) => {
       const start = event.start_date
       const end = event.end_date
       return dateStr >= start && dateStr <= end
     })
+
+    // Debug: Log if more than 3 events on a day
+    if (filtered.length > 3) {
+      console.log(`📅 ${dateStr} has ${filtered.length} events:`, filtered.map(e => ({ id: e.id, title: e.title })))
+    }
+
+    return filtered
   }
 
   const handleDayClick = (day: number | null) => {
@@ -116,17 +123,25 @@ export function CalendarMonth({
                     {day}
                   </span>
 
-                  {/* Event Indicators - Line through date */}
+                  {/* Event Indicators - Small colored boxes */}
                   {hasEvents && (
-                    <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 flex flex-col gap-0.5">
-                      {dayEvents.slice(0, 3).map((event, i) => (
-                        <div
-                          key={event.id}
-                          className="h-0.5 w-full rounded-full"
-                          style={{ backgroundColor: event.color }}
-                        />
-                      ))}
-                    </div>
+                    <>
+                      <div className="absolute bottom-0.5 left-0.5 flex gap-0.5 flex-wrap max-w-full">
+                        {dayEvents.slice(0, 5).map((event) => (
+                          <div
+                            key={event.id}
+                            className="w-1.5 h-1.5 rounded-sm"
+                            style={{ backgroundColor: event.color }}
+                            title={event.title}
+                          />
+                        ))}
+                        {dayEvents.length > 5 && (
+                          <div className="text-[8px] font-medium text-gray-500 leading-none">
+                            +{dayEvents.length - 5}
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                 </>
               )}
