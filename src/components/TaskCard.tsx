@@ -3,6 +3,8 @@ import { useDraggable } from '@dnd-kit/core'
 import { Task, UserProfile } from '../types'
 import { useProfileFromBatch } from '../hooks/useBatchUserProfiles'
 import { useSubtasks } from '../hooks/useSubtasks'
+import { useToggle } from '../hooks/useToggle'
+import { ConfirmDialog } from './ConfirmDialog'
 
 interface TaskCardProps {
   task: Task
@@ -28,6 +30,7 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
   const [showMenu, setShowMenu] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(task.title)
+  const showDeleteConfirm = useToggle()
 
   // Get assignee profile from batched data
   const assigneeProfile = useProfileFromBatch(task.assigned_to, userProfiles)
@@ -64,9 +67,7 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (confirm('Delete this task?') && onDelete) {
-      onDelete(task.id)
-    }
+    showDeleteConfirm.open()
     setShowMenu(false)
   }
 
@@ -120,6 +121,7 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
   }), [subtaskItems])
 
   return (
+    <>
     <div
       ref={setNodeRef}
       {...attributes}
@@ -257,5 +259,36 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
         </div>
       )}
     </div>
+
+    {/* Delete Confirmation Dialog */}
+    <ConfirmDialog
+      isOpen={showDeleteConfirm.isOpen}
+      title="Delete Task?"
+      icon="⚠️"
+      message={
+        <div className="space-y-2">
+          <p>This will <strong>permanently delete</strong>:</p>
+          <ul className="list-disc list-inside space-y-1 text-gray-600">
+            <li>Task "<strong>{task.title}</strong>"</li>
+            <li>All subtasks</li>
+            <li>All comments and activity history</li>
+            <li>All attachments and pages</li>
+          </ul>
+          <p className="text-red-600 font-medium mt-3">
+            This action cannot be undone.
+          </p>
+        </div>
+      }
+      confirmText="Delete Task"
+      confirmButtonClass="bg-red-600 hover:bg-red-700"
+      requireTextConfirm={true}
+      textToConfirm={task.title}
+      onConfirm={() => {
+        if (onDelete) onDelete(task.id)
+        showDeleteConfirm.close()
+      }}
+      onCancel={showDeleteConfirm.close}
+    />
+  </>
   )
 }
