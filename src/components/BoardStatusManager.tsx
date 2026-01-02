@@ -98,17 +98,21 @@ function SortableStatusItem({
             />
           </div>
           <div className="flex items-center gap-2">
-            <select
-              value={editColor}
-              onChange={(e) => onEditColorChange(e.target.value)}
-              className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-            >
+            <div className="flex-1 flex flex-wrap gap-2">
               {COLOR_OPTIONS.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => onEditColorChange(c.value)}
+                  className={`w-8 h-8 rounded-full ${c.class} transition-all ${
+                    editColor === c.value
+                      ? 'ring-2 ring-offset-2 ring-gray-400 scale-110'
+                      : 'hover:scale-105 opacity-70 hover:opacity-100'
+                  }`}
+                  title={c.label}
+                />
               ))}
-            </select>
+            </div>
             <button
               onClick={() => onSaveEdit(status.id)}
               className="px-3 py-1 text-xs bg-green-500 hover:bg-green-600 text-white rounded transition flex-shrink-0"
@@ -326,35 +330,41 @@ export default function BoardStatusManager({ boardId, isOwner }: BoardStatusMana
                   className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                   autoFocus
                 />
-                <div className="flex items-center gap-2">
-                  <select
-                    value={newStatusColor}
-                    onChange={(e) => setNewStatusColor(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                  >
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {COLOR_OPTIONS.map((c) => (
-                      <option key={c.value} value={c.value}>
-                        {c.label}
-                      </option>
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() => setNewStatusColor(c.value)}
+                        className={`w-8 h-8 rounded-full ${c.class} transition-all ${
+                          newStatusColor === c.value
+                            ? 'ring-2 ring-offset-2 ring-gray-400 scale-110'
+                            : 'hover:scale-105 opacity-70 hover:opacity-100'
+                        }`}
+                        title={c.label}
+                      />
                     ))}
-                  </select>
-                  <button
-                    onClick={handleCreate}
-                    disabled={!newStatusName.trim()}
-                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-                  >
-                    Add
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsAdding(false)
-                      setNewStatusName('')
-                      setNewStatusColor('gray')
-                    }}
-                    className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded transition flex-shrink-0"
-                  >
-                    Cancel
-                  </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleCreate}
+                      disabled={!newStatusName.trim()}
+                      className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                    >
+                      Add
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsAdding(false)
+                        setNewStatusName('')
+                        setNewStatusColor('gray')
+                      }}
+                      className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded transition flex-shrink-0"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

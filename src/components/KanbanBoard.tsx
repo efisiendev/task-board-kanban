@@ -15,9 +15,12 @@ interface KanbanBoardProps {
   userProfiles: UserProfile[]
   onTaskClick: (task: Task) => void
   onTaskMoved: (taskId: string, newStatusId: string, newOrderIndex: number) => void
+  onAddTask: (statusId: string) => void
+  onDeleteTask?: (taskId: string) => void
+  onQuickEditTask?: (taskId: string, newTitle: string) => void
 }
 
-export default function KanbanBoard({ tasks, statuses, userProfiles, onTaskClick, onTaskMoved }: KanbanBoardProps) {
+export default function KanbanBoard({ tasks, statuses, userProfiles, onTaskClick, onTaskMoved, onAddTask, onDeleteTask, onQuickEditTask }: KanbanBoardProps) {
 
   // Configure pointer sensor for better drag detection
   const sensors = useSensors(
@@ -91,6 +94,9 @@ export default function KanbanBoard({ tasks, statuses, userProfiles, onTaskClick
               tasks={tasks.filter((t) => t.status_id === status.id)}
               userProfiles={userProfiles}
               onTaskClick={onTaskClick}
+              onAddTask={onAddTask}
+              onDeleteTask={onDeleteTask}
+              onQuickEditTask={onQuickEditTask}
             />
           ))}
         </div>

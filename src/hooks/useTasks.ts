@@ -88,6 +88,7 @@ export function useCreateTask() {
       start_date,
       labels,
       estimated_time,
+      status_id,
     }: {
       boardId: string
       title: string
@@ -98,6 +99,7 @@ export function useCreateTask() {
       start_date?: string | null
       labels?: string[] | null
       estimated_time?: number | null
+      status_id?: string
     }) => {
       // Get current user for created_by
       const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -108,17 +110,21 @@ export function useCreateTask() {
         await ensureUserIsBoardMember(boardId, assigned_to)
       }
 
-      // Get first status for this board (To Do)
-      const { data: firstStatus } = await supabase
-        .from('board_statuses')
-        .select('id')
-        .eq('board_id', boardId)
-        .order('order_index', { ascending: true })
-        .limit(1)
-        .single()
+      // Use provided status_id or get first status for this board (To Do)
+      let targetStatusId = status_id
+      if (!targetStatusId) {
+        const { data: firstStatus } = await supabase
+          .from('board_statuses')
+          .select('id')
+          .eq('board_id', boardId)
+          .order('order_index', { ascending: true })
+          .limit(1)
+          .single()
 
-      if (!firstStatus) {
-        throw new Error('No statuses found for this board')
+        if (!firstStatus) {
+          throw new Error('No statuses found for this board')
+        }
+        targetStatusId = firstStatus.id
       }
 
       const { data, error } = await supabase
@@ -127,7 +133,7 @@ export function useCreateTask() {
           board_id: boardId,
           title,
           description: description || null,
-          status_id: firstStatus.id,
+          status_id: targetStatusId,
           order_index: 0,
           priority: priority || null,
           assigned_to: assigned_to || null,

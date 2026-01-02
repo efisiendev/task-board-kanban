@@ -48,6 +48,7 @@ export default function Board() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [selectedPage, setSelectedPage] = useState<BoardPage | null>(null)
+  const [initialStatusId, setInitialStatusId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [showMembers, setShowMembers] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
@@ -116,11 +117,39 @@ export default function Board() {
     try {
       await createTaskMutation.mutateAsync({
         boardId: boardId!,
+        status_id: initialStatusId || undefined,
         ...data,
       })
       setIsModalOpen(false)
+      setInitialStatusId(null)
     } catch (error) {
       console.error('Failed to create task:', error)
+    }
+  }
+
+  const handleAddTaskFromColumn = (statusId: string) => {
+    setInitialStatusId(statusId)
+    setEditingTask(null)
+    setIsModalOpen(true)
+  }
+
+  const handleDeleteTaskFromCard = async (taskId: string) => {
+    try {
+      await deleteTaskMutation.mutateAsync({ id: taskId, boardId: boardId! })
+    } catch (error) {
+      console.error('Failed to delete task:', error)
+    }
+  }
+
+  const handleQuickEditTask = async (taskId: string, newTitle: string) => {
+    try {
+      await updateTaskMutation.mutateAsync({
+        id: taskId,
+        boardId: boardId!,
+        title: newTitle,
+      })
+    } catch (error) {
+      console.error('Failed to update task title:', error)
     }
   }
 
@@ -313,6 +342,7 @@ export default function Board() {
                     <button
                       onClick={() => {
                         setEditingTask(null)
+                        setInitialStatusId(null)
                         setIsModalOpen(true)
                         setShowNewMenu(false)
                       }}
@@ -484,6 +514,9 @@ export default function Board() {
                       console.error('Failed to move task:', error)
                     }
                   }}
+                  onAddTask={handleAddTaskFromColumn}
+                  onDeleteTask={handleDeleteTaskFromCard}
+                  onQuickEditTask={handleQuickEditTask}
                 />
               </div>
             ) : currentView === 'calendar' ? (
@@ -583,6 +616,7 @@ export default function Board() {
           onClose={() => {
             setIsModalOpen(false)
             setEditingTask(null)
+            setInitialStatusId(null)
           }}
           onCreate={handleCreateTask}
           onUpdate={handleUpdateTask}
