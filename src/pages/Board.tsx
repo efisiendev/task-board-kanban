@@ -20,6 +20,7 @@ import { FilterSidebar, TaskFilters } from '../components/FilterSidebar'
 import { MainLayout } from '../components/MainLayout'
 import { Task, BoardPage } from '../types'
 import { useBoardPages, useCreateBoardPage, useUpdateBoardPage, useDeleteBoardPage } from '../hooks/useBoardPages'
+import { useToggle } from '../hooks/useToggle'
 
 type ViewType = 'kanban' | 'table' | 'list' | 'calendar'
 
@@ -51,11 +52,11 @@ export default function Board() {
   const [selectedFile, setSelectedFile] = useState<BoardPage | null>(null)
   const [initialStatusId, setInitialStatusId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [showMembers, setShowMembers] = useState(false)
-  const [showFilters, setShowFilters] = useState(false)
-  const [showStatuses, setShowStatuses] = useState(false)
-  const [showNewMenu, setShowNewMenu] = useState(false)
-  const [showPages, setShowPages] = useState(false)
+  const showMembers = useToggle()
+  const showFilters = useToggle()
+  const showStatuses = useToggle()
+  const showNewMenu = useToggle()
+  const showPages = useToggle()
   const [currentView, setCurrentView] = useState<ViewType>('kanban')
   const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS)
 
@@ -247,9 +248,9 @@ export default function Board() {
             {/* Action buttons - compact on mobile */}
             <div className="flex gap-2 md:gap-4">
               <button
-                onClick={() => setShowFilters(!showFilters)}
+                onClick={showFilters.toggle}
                 className={`px-3 md:px-4 py-2 rounded-lg font-medium transition text-sm md:text-base ${
-                  showFilters
+                  showFilters.isOpen
                     ? 'bg-blue-100 text-blue-700 border border-blue-300'
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
                 }`}
@@ -258,9 +259,9 @@ export default function Board() {
                 <span className="hidden md:inline">🔍 Filter</span>
               </button>
               <button
-                onClick={() => setShowMembers(!showMembers)}
+                onClick={showMembers.toggle}
                 className={`px-3 md:px-4 py-2 rounded-lg font-medium transition text-sm md:text-base ${
-                  showMembers
+                  showMembers.isOpen
                     ? 'bg-blue-100 text-blue-700 border border-blue-300'
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
                 }`}
@@ -269,9 +270,9 @@ export default function Board() {
                 <span className="hidden md:inline">👥 Members</span>
               </button>
               <button
-                onClick={() => setShowPages(!showPages)}
+                onClick={showPages.toggle}
                 className={`px-3 md:px-4 py-2 rounded-lg font-medium transition text-sm md:text-base ${
-                  showPages
+                  showPages.isOpen
                     ? 'bg-blue-100 text-blue-700 border border-blue-300'
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
                 }`}
@@ -282,7 +283,7 @@ export default function Board() {
               {/* New Dropdown Menu */}
               <div className="relative">
               <button
-                onClick={() => setShowNewMenu(!showNewMenu)}
+                onClick={showNewMenu.toggle}
                 className="px-4 md:px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition flex items-center gap-1 md:gap-2 text-sm md:text-base"
               >
                 <span className="md:hidden">+</span>
@@ -293,11 +294,11 @@ export default function Board() {
               </button>
 
               {/* Dropdown Menu */}
-              {showNewMenu && (
+              {showNewMenu.isOpen && (
                 <>
                   <div
                     className="fixed inset-0 z-10"
-                    onClick={() => setShowNewMenu(false)}
+                    onClick={showNewMenu.close}
                   />
                   <div className="fixed md:absolute right-4 md:right-0 top-auto md:top-auto mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
                     <button
@@ -305,7 +306,7 @@ export default function Board() {
                         setEditingTask(null)
                         setInitialStatusId(null)
                         setIsModalOpen(true)
-                        setShowNewMenu(false)
+                        showNewMenu.close()
                       }}
                       className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-gray-700"
                     >
@@ -317,8 +318,8 @@ export default function Board() {
                         <div className="border-t border-gray-200 my-1" />
                         <button
                           onClick={() => {
-                            setShowStatuses(true)
-                            setShowNewMenu(false)
+                            showStatuses.open()
+                            showNewMenu.close()
                           }}
                           className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-gray-700"
                         >
@@ -340,19 +341,19 @@ export default function Board() {
       <main className="w-full py-6 md:py-12">
         <div className="flex gap-6">
           {/* Filter Sidebar - Fixed overlay on mobile, sidebar on desktop */}
-          {showFilters && (
+          {showFilters.isOpen && (
             <>
               {/* Mobile backdrop */}
               <div
                 className="fixed inset-0 bg-black bg-opacity-20 z-40 md:hidden"
-                onClick={() => setShowFilters(false)}
+                onClick={showFilters.close}
               />
               {/* Sidebar */}
               <div className="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-80 md:w-auto md:pl-4 bg-white md:bg-transparent shadow-2xl md:shadow-none">
                 <div className="h-full overflow-y-auto p-4 md:p-0">
                   {/* Close button - mobile only */}
                   <button
-                    onClick={() => setShowFilters(false)}
+                    onClick={showFilters.close}
                     className="md:hidden mb-4 text-gray-400 hover:text-gray-600"
                   >
                     ✕ Close
@@ -369,19 +370,19 @@ export default function Board() {
           )}
 
           {/* Pages Sidebar - Fixed overlay on mobile, sidebar on desktop */}
-          {showPages && (
+          {showPages.isOpen && (
             <>
               {/* Mobile backdrop */}
               <div
                 className="fixed inset-0 bg-black bg-opacity-20 z-40 md:hidden"
-                onClick={() => setShowPages(false)}
+                onClick={showPages.close}
               />
               {/* Sidebar */}
               <div className="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-80 md:w-96 md:pl-4 bg-white md:bg-transparent shadow-2xl md:shadow-none">
                 <div className="h-full overflow-hidden p-4 md:p-0">
                   {/* Close button - mobile only */}
                   <button
-                    onClick={() => setShowPages(false)}
+                    onClick={showPages.close}
                     className="md:hidden mb-4 text-gray-400 hover:text-gray-600"
                   >
                     ✕ Close
@@ -393,7 +394,7 @@ export default function Board() {
                       onSelectPage={(page) => {
                         if (page?.type === 'page') {
                           setSelectedPage(page)
-                          setShowPages(false) // Close sidebar on mobile
+                          showPages.close() // Close sidebar on mobile
                         }
                       }}
                       onCreatePage={async (parentId) => {
@@ -458,7 +459,7 @@ export default function Board() {
                       }}
                       onFileClick={(file) => {
                         setSelectedFile(file)
-                        setShowPages(false) // Close sidebar on mobile
+                        showPages.close() // Close sidebar on mobile
                       }}
                     />
                   </div>
@@ -472,7 +473,7 @@ export default function Board() {
             {isLoading ? (
               <div className="text-center text-gray-600 px-4">Loading tasks...</div>
             ) : currentView === 'kanban' ? (
-              <div className={showFilters || showMembers || showPages ? '' : 'px-4'}>
+              <div className={showFilters.isOpen || showMembers.isOpen || showPages.isOpen ? '' : 'px-4'}>
                 <KanbanBoard
                   tasks={filteredTasks}
                   statuses={statuses}
@@ -535,19 +536,19 @@ export default function Board() {
           </div>
 
           {/* Members Sidebar - Fixed overlay on mobile, sidebar on desktop */}
-          {showMembers && (
+          {showMembers.isOpen && (
             <>
               {/* Mobile backdrop */}
               <div
                 className="fixed inset-0 bg-black bg-opacity-20 z-40 md:hidden"
-                onClick={() => setShowMembers(false)}
+                onClick={showMembers.close}
               />
               {/* Sidebar */}
               <div className="fixed md:static inset-y-0 right-0 z-50 md:z-auto w-80 md:pr-4 bg-white md:bg-transparent shadow-2xl md:shadow-none">
                 <div className="h-full overflow-y-auto p-4 md:p-0">
                   {/* Close button - mobile only */}
                   <button
-                    onClick={() => setShowMembers(false)}
+                    onClick={showMembers.close}
                     className="md:hidden mb-4 text-gray-400 hover:text-gray-600"
                   >
                     ✕ Close
@@ -562,19 +563,19 @@ export default function Board() {
       </main>
 
       {/* Settings Sidebar (Overlay) */}
-      {showStatuses && (
+      {showStatuses.isOpen && (
         <>
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black bg-opacity-20 z-40"
-            onClick={() => setShowStatuses(false)}
+            onClick={showStatuses.close}
           />
           {/* Sidebar */}
           <div className="fixed top-0 right-0 h-full w-full md:w-96 bg-white shadow-2xl z-50 overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Board Settings</h2>
               <button
-                onClick={() => setShowStatuses(false)}
+                onClick={showStatuses.close}
                 className="p-2 hover:bg-gray-100 rounded-lg transition"
               >
                 ✕
