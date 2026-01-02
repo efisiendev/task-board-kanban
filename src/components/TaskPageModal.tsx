@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { TaskPage } from '../types'
 import { useUpdateTaskPage } from '../hooks/useTaskPages'
 import { RichTextEditor } from './RichTextEditor'
+import { useAutoSave } from '../hooks/useAutoSave'
 
 interface TaskPageModalProps {
   page: TaskPage
@@ -13,33 +14,63 @@ export function TaskPageModal({ page, taskId, onClose }: TaskPageModalProps) {
   const [title, setTitle] = useState(page.title)
   const [content, setContent] = useState(page.content || '')
   const [editorMode, setEditorMode] = useState<'rich' | 'markdown'>('rich')
-  const [isSaving, setIsSaving] = useState(false)
 
   const updatePage = useUpdateTaskPage()
 
-  // Auto-save debounced
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (title !== page.title || content !== page.content) {
-        setIsSaving(true)
-        updatePage.mutate(
-          {
-            id: page.id,
-            taskId,
-            title: title.trim() || 'Untitled',
-            content,
-          },
-          {
-            onSettled: () => {
-              setIsSaving(false)
-            },
-          }
-        )
-      }
-    }, 500)
+  // Auto-save handler with conflict protection
+  const handleAutoSave = async (data: { title: string; content: string }) => {
+    if (!data.title.trim()) return
 
-    return () => clearTimeout(timer)
-  }, [title, content]) // eslint-disable-line react-hooks/exhaustive-deps
+    try {
+      await updatePage.mutateAsync({
+        id: page.id,
+        taskId,
+        title: data.title.trim() || 'Untitled',
+        content: data.content,
+      })
+    } catch (error) {
+      console.error('Auto-save error:', error)
+    }
+  }
+
+  // Use shared auto-save hook with Realtime protection
+  const { isSaving, debouncedAutoSave, lastEditTimeRef } = useAutoSave({
+    onSave: handleAutoSave,
+    delay: 500,
+  })
+
+  // Sync with Realtime updates (protect against overwriting user edits)
+  useEffect(() => {
+    if (page) {
+      const timeSinceLastEdit = Date.now() - lastEditTimeRef.current
+      // Only sync if user hasn't edited recently (2 seconds)
+      if (timeSinceLastEdit > 2000) {
+        setTitle(page.title)
+        setContent(page.content || '')
+      }
+    }
+  }, [page, lastEditTimeRef])
+
+  // Auto-save on title or content change
+  useEffect(() => {
+    const timeSinceLastEdit = Date.now() - lastEditTimeRef.current
+    // Only trigger autosave if user just edited (within 2 seconds)
+    // This prevents autosave on initial load or Realtime sync
+    if (timeSinceLastEdit < 2000) {
+      debouncedAutoSave({ title, content })
+    }
+  }, [title, content, debouncedAutoSave, lastEditTimeRef])
+
+  // Update lastEditTime when user edits
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle)
+    lastEditTimeRef.current = Date.now()
+  }
+
+  const handleContentChange = (newContent: string) => {
+    setContent(newContent)
+    lastEditTimeRef.current = Date.now()
+  }
 
   return (
     <div className="fixed inset-0 z-50">
@@ -57,7 +88,7 @@ export function TaskPageModal({ page, taskId, onClose }: TaskPageModalProps) {
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => handleTitleChange(e.target.value)}
               className="flex-1 text-lg md:text-xl font-bold border-none outline-none focus:ring-0 p-0 min-w-0"
               placeholder="Untitled"
             />
@@ -110,14 +141,14 @@ export function TaskPageModal({ page, taskId, onClose }: TaskPageModalProps) {
           {editorMode === 'markdown' ? (
             <textarea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => handleContentChange(e.target.value)}
               className="w-full h-full p-4 md:p-6 text-sm md:text-base text-gray-700 border-none outline-none focus:ring-0 resize-none font-mono"
               placeholder="Start writing... (Markdown supported: **bold**, *italic*, # heading, etc.)"
             />
           ) : (
             <RichTextEditor
               content={content}
-              onChange={setContent}
+              onChange={handleContentChange}
               placeholder="Start writing..."
               editable={true}
             />
