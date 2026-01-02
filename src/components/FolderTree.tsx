@@ -348,7 +348,7 @@ export function FolderTree({
       {/* Header */}
       <div className="p-3 border-b border-gray-200">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold text-gray-700">Pages</h3>
+          <h3 className="text-sm font-semibold text-gray-700">Files & Folders</h3>
           <div className="relative">
             <button
               onClick={() => setShowNewMenu(!showNewMenu)}
@@ -409,7 +409,7 @@ export function FolderTree({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search pages..."
+            placeholder="Search files & folders..."
             className="w-full px-3 py-1.5 pl-8 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <svg
@@ -551,12 +551,12 @@ export function FolderTree({
           </div>
         ) : rootPages.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-sm text-gray-400">No pages yet</p>
+            <p className="text-sm text-gray-400">No files or folders yet</p>
             <button
               onClick={() => onCreatePage(null)}
               className="mt-2 text-xs text-blue-600 hover:text-blue-700"
             >
-              Create your first page
+              Create your first item
             </button>
           </div>
         ) : (

@@ -318,7 +318,7 @@ export default function Board() {
                 }`}
               >
                 <span className="md:hidden">📄</span>
-                <span className="hidden md:inline">📄 Pages</span>
+                <span className="hidden md:inline">📄 Files & Folders</span>
               </button>
               {/* New Dropdown Menu */}
               <div className="relative">
