@@ -35,12 +35,12 @@ export function MainLayout({ children, currentBoardId, topBarContent }: MainLayo
             </svg>
           </button>
 
-          {/* TaskFlow Logo - Navigate to Dashboard */}
+          {/* EMA Logo - Navigate to Dashboard */}
           <button
             onClick={() => navigate('/dashboard')}
             className="text-xl font-bold text-gray-900 hover:text-blue-600 transition flex-shrink-0"
           >
-            TaskFlow
+            EMA
           </button>
 
           {/* Custom Top Bar Content */}
