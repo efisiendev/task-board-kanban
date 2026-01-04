@@ -8,6 +8,7 @@ import { getRelativeTime } from '../utils/timeUtils'
 import { useCalendarEventsByRange } from '../hooks/useCalendarEvents'
 import { CalendarMonth } from '../components/CalendarMonth'
 import { EventDetailSidebar } from '../components/EventDetailSidebar'
+import { Edit } from 'lucide-react'
 import { DEFAULTS } from '../constants/theme'
 import { useToggle } from '../hooks/useToggle'
 import { useCalendarSelection } from '../hooks/useCalendarSelection'
@@ -251,7 +252,7 @@ export default function Dashboard() {
                         className="text-gray-400 hover:text-blue-600 transition"
                         title="Edit project"
                       >
-                        ✏️
+                        <Edit className="w-4 h-4" />
                       </button>
                     )}
                   </div>

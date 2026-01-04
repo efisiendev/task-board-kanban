@@ -1,8 +1,8 @@
 {
-  "name": "taskflow",
+  "name": "ema",
   "private": true,
   "version": "1.0.0",
-  "description": "Real-time collaborative Kanban task board - Portfolio project",
+  "description": "Efisien Management App - Manage smarter, work better",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "generate:pdf": "node scripts/generate-pdf.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
@@ -32,6 +33,7 @@
     "@tiptap/starter-kit": "^3.14.0",
     "clsx": "^2.0.0",
     "date-fns": "^4.1.0",
+    "lucide-react": "^0.562.0",
     "react": "^18.2.0",
     "react-big-calendar": "^1.19.4",
     "react-dom": "^18.2.0",
@@ -55,6 +57,7 @@
     "eslint": "^8.56.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "md-to-pdf": "^5.2.5",
     "playwright": "^1.40.1",
     "postcss": "^8.4.32",
     "prettier": "^3.1.1",

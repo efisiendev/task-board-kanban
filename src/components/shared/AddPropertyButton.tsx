@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CheckSquare, FileText, Link2, LucideIcon } from 'lucide-react'
 
 export type AdditionalProperty = 'subtasks' | 'pages' | 'relations'
 
@@ -7,10 +8,10 @@ interface AddPropertyButtonProps {
   availableProperties: AdditionalProperty[]
 }
 
-const PROPERTY_LABELS: Record<AdditionalProperty, { label: string; emoji: string }> = {
-  subtasks: { label: 'Subtasks', emoji: '☑️' },
-  pages: { label: 'Pages', emoji: '📄' },
-  relations: { label: 'Relations', emoji: '🔗' },
+const PROPERTY_LABELS: Record<AdditionalProperty, { label: string; icon: LucideIcon }> = {
+  subtasks: { label: 'Subtasks', icon: CheckSquare },
+  pages: { label: 'Pages', icon: FileText },
+  relations: { label: 'Relations', icon: Link2 },
 }
 
 export function AddPropertyButton({ onAddProperty, availableProperties }: AddPropertyButtonProps) {
@@ -44,7 +45,7 @@ export function AddPropertyButton({ onAddProperty, availableProperties }: AddPro
           {/* Dropdown - compact width */}
           <div className="absolute left-0 top-full mt-1 w-48 bg-white border border-gray-300 rounded-lg shadow-lg z-20 py-1">
             {availableProperties.map((property) => {
-              const { label, emoji } = PROPERTY_LABELS[property]
+              const { label, icon: Icon } = PROPERTY_LABELS[property]
               return (
                 <button
                   key={property}
@@ -55,7 +56,7 @@ export function AddPropertyButton({ onAddProperty, availableProperties }: AddPro
                   }}
                   className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
                 >
-                  <span>{emoji}</span>
+                  <Icon className="w-4 h-4 text-gray-600" />
                   <span>{label}</span>
                 </button>
               )

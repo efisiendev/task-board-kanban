@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useBoards } from '../hooks/useBoards'
 import { Board } from '../types'
+import { Kanban, LogOut } from 'lucide-react'
 
 interface SidebarProps {
   isOpen: boolean
@@ -110,7 +111,7 @@ export function Sidebar({ isOpen, onClose, currentBoardId }: SidebarProps) {
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-base">📋</span>
+                      <Kanban className="w-4 h-4" />
                       <span className="truncate flex-1">{board.name}</span>
                     </div>
                   </button>
@@ -137,7 +138,7 @@ export function Sidebar({ isOpen, onClose, currentBoardId }: SidebarProps) {
             onClick={handleLogout}
             className="w-full px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition flex items-center gap-2"
           >
-            <span className="text-base">🚪</span>
+            <LogOut className="w-4 h-4" />
             Logout
           </button>
         </div>

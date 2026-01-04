@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { BoardPage } from '../types'
+import { Folder, FileText, Link2 } from 'lucide-react'
 
 interface FolderTreeProps {
   pages: BoardPage[]
@@ -208,8 +209,8 @@ export function FolderTree({
           {!isFolder && <div className="w-4" />}
 
           {/* Icon */}
-          <span className="text-sm flex-shrink-0">
-            {isFolder ? '📁' : isFile ? '🔗' : '📄'}
+          <span className="flex-shrink-0">
+            {isFolder ? <Folder className="w-4 h-4 text-gray-600" /> : isFile ? <Link2 className="w-4 h-4 text-gray-600" /> : <FileText className="w-4 h-4 text-gray-600" />}
           </span>
 
           {/* Title or Rename Input */}
@@ -278,7 +279,7 @@ export function FolderTree({
                           }}
                           className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2"
                         >
-                          <span>📄</span> New Page
+                          <FileText className="w-3.5 h-3.5" /> New Page
                         </button>
                         <button
                           onClick={(e) => {
@@ -289,7 +290,7 @@ export function FolderTree({
                           }}
                           className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100"
                         >
-                          <span>📁</span> New Subfolder
+                          <Folder className="w-3.5 h-3.5" /> New Subfolder
                         </button>
                         <button
                           onClick={(e) => {
@@ -300,7 +301,7 @@ export function FolderTree({
                           }}
                           className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100"
                         >
-                          <span>🔗</span> Add Google Drive File
+                          <Link2 className="w-3.5 h-3.5" /> Add Google Drive File
                         </button>
                       </div>
                     </>
@@ -386,7 +387,7 @@ export function FolderTree({
                     }}
                     className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                   >
-                    <span>📄</span> New Page
+                    <FileText className="w-4 h-4" /> New Page
                   </button>
                   <button
                     onClick={() => {
@@ -396,7 +397,7 @@ export function FolderTree({
                     }}
                     className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100"
                   >
-                    <span>📁</span> New Folder
+                    <Folder className="w-4 h-4" /> New Folder
                   </button>
                   <button
                     onClick={() => {
@@ -406,7 +407,7 @@ export function FolderTree({
                     }}
                     className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100"
                   >
-                    <span>🔗</span> Add Google Drive File
+                    <Link2 className="w-4 h-4" /> Add Google Drive File
                   </button>
                 </div>
               </>

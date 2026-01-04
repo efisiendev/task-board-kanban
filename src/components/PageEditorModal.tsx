@@ -4,6 +4,7 @@ import { useUpdateBoardPage } from '../hooks/useBoardPages'
 import { RichTextEditor } from './RichTextEditor'
 import { MarkdownEditor } from './MarkdownEditor'
 import { useAutoSave } from '../hooks/useAutoSave'
+import { FileText, Edit3, Type } from 'lucide-react'
 
 interface PageEditorModalProps {
   page: BoardPage
@@ -85,7 +86,7 @@ export function PageEditorModal({ page, onClose }: PageEditorModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 bg-white flex-shrink-0">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <span className="text-2xl flex-shrink-0">📄</span>
+            <FileText className="w-6 h-6 text-gray-600 flex-shrink-0" />
             <input
               type="text"
               value={title}
@@ -104,25 +105,25 @@ export function PageEditorModal({ page, onClose }: PageEditorModalProps) {
             <div className="flex items-center gap-1 bg-gray-100 rounded p-0.5">
               <button
                 onClick={() => setEditorMode('rich')}
-                className={`px-2 py-1 rounded text-xs font-medium transition ${
+                className={`px-2 py-1 rounded text-xs font-medium transition flex items-center gap-1 ${
                   editorMode === 'rich'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <span className="hidden sm:inline">📝 Rich</span>
-                <span className="sm:hidden">📝</span>
+                <Edit3 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Rich</span>
               </button>
               <button
                 onClick={() => setEditorMode('markdown')}
-                className={`px-2 py-1 rounded text-xs font-medium transition ${
+                className={`px-2 py-1 rounded text-xs font-medium transition flex items-center gap-1 ${
                   editorMode === 'markdown'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <span className="hidden sm:inline">🔤 MD</span>
-                <span className="sm:hidden">🔤</span>
+                <Type className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">MD</span>
               </button>
             </div>
 

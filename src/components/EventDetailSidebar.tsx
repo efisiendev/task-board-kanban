@@ -8,6 +8,7 @@ import {
 import { useBoards } from '../hooks/useBoards'
 import { useAuth } from '../hooks/useAuth'
 import { DEFAULTS } from '../constants/theme'
+import { Folder } from 'lucide-react'
 import { CloseIcon } from './ui/Icons'
 import { ColorPicker } from './ui/ColorPicker'
 import { Button } from './ui/Button'
@@ -374,8 +375,8 @@ export function EventDetailSidebar({
                       <div className="flex-1">
                         <h4 className="font-medium text-gray-900">{e.title}</h4>
                         {e.board && (
-                          <span className="text-xs text-gray-500">
-                            📁 {e.board.name}
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <Folder className="w-3 h-3" /> {e.board.name}
                           </span>
                         )}
                         {!e.board_id && (

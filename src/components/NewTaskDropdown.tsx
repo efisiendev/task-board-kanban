@@ -1,3 +1,5 @@
+import { Edit3 } from 'lucide-react'
+
 interface NewTaskDropdownProps {
   isOpen: boolean
   isOwner: boolean
@@ -20,7 +22,7 @@ export function NewTaskDropdown({ isOpen, isOwner, onClose, onNewTask, onSetting
           onClick={onNewTask}
           className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-gray-700"
         >
-          <span className="text-lg">📝</span>
+          <Edit3 className="w-5 h-5" />
           New Task
         </button>
         {isOwner && (

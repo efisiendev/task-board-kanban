@@ -6,6 +6,7 @@ import { useSubtasks } from '../hooks/useSubtasks'
 import { useToggle } from '../hooks/useToggle'
 import { ConfirmDialog } from './ConfirmDialog'
 import { createPortal } from 'react-dom'
+import { Edit, Link2, Trash2, CheckSquare, Calendar, Clock, AlertTriangle } from 'lucide-react'
 
 interface TaskCardProps {
   task: Task
@@ -215,14 +216,14 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
                     onClick={handleStartEdit}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
                   >
-                    <span>✏️</span>
+                    <Edit className="w-4 h-4" />
                     Edit name
                   </button>
                   <button
                     onClick={handleCopyLink}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
                   >
-                    <span>🔗</span>
+                    <Link2 className="w-4 h-4" />
                     Copy link
                   </button>
                   {onDelete && (
@@ -232,7 +233,7 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
                         onClick={handleDelete}
                         className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
                       >
-                        <span>🗑️</span>
+                        <Trash2 className="w-4 h-4" />
                         Delete
                       </button>
                     </>
@@ -271,17 +272,17 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
         <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
           {hasSubtasks && (
             <span className={`flex items-center gap-1 ${subtasksCompleted === subtasksTotal ? 'text-green-600' : ''}`}>
-              ☑️ {subtasksCompleted}/{subtasksTotal}
+              <CheckSquare className="w-3.5 h-3.5" /> {subtasksCompleted}/{subtasksTotal}
             </span>
           )}
           {formattedDate && (
             <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-600 font-medium' : ''}`}>
-              📅 {formattedDate}
+              <Calendar className="w-3.5 h-3.5" /> {formattedDate}
             </span>
           )}
           {task.estimated_time && (
             <span className="flex items-center gap-1">
-              ⏱️ {task.estimated_time}m
+              <Clock className="w-3.5 h-3.5" /> {task.estimated_time}m
             </span>
           )}
         </div>
@@ -292,7 +293,7 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
     <ConfirmDialog
       isOpen={showDeleteConfirm.isOpen}
       title="Delete Task?"
-      icon="⚠️"
+      icon={<AlertTriangle className="w-6 h-6 text-orange-500" />}
       message={
         <div className="space-y-2">
           <p>This will <strong>permanently delete</strong>:</p>
