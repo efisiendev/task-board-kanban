@@ -5,7 +5,7 @@ import {
   useUpdateCalendarEvent,
   useDeleteCalendarEvent,
 } from '../hooks/useCalendarEvents'
-import { useBoards } from '../../../hooks/useBoards'
+import { useBoards } from '../../boards/hooks/useBoards'
 import { useAuth } from '../../../hooks/useAuth'
 import { DEFAULTS } from '../../../constants/theme'
 import { Folder } from 'lucide-react'

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useBoards, useCreateBoard, useUpdateBoard, useDeleteBoard } from '../hooks/useBoards'
+import { useBoards, useCreateBoard, useUpdateBoard, useDeleteBoard } from '../features/boards/hooks/useBoards'
 import { useAuth } from '../hooks/useAuth'
 import { MainLayout } from '../components/MainLayout'
 import { ConfirmDialog } from '../components/ConfirmDialog'
