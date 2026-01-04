@@ -1,0 +1,72 @@
+Patch ~/.claude.json mu met @57947832995935 
+
+Sesuaikan, seorane nek durung ono bagian iki tok tambahi wae mcp-ku (soale koe nggo konfigurasi hooks ku):
+```
+  "mcpServers": {
+    "dc": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@wonderwhy-er/desktop-commander@latest"
+      ]
+    },
+    "st": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "c7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ]
+    }
+  },
+```
+
+Terus struktur hooks ngene yo (root dir neng ~/.claude/)
+```
+  ~/.claude/hooks/
+├── post-tool-use.sh
+└── pre-tool-use.sh
+```
+
+Isi settings.json neng jero   ~/.claude/settings.json
+```
+{
+  "includeCoAuthoredBy": false,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/ghawsshafadonia/.claude/hooks/pre-tool-use.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/ghawsshafadonia/.claude/hooks/post-tool-use.sh",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  },
+  "alwaysThinkingEnabled": true,
+  "gitAttribution": false
+}
+```
+}
+```
