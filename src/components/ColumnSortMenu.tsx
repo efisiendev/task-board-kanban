@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Flame, Calendar } from '../lib/icons'
 
 export type SortOption = 'order' | 'priority' | 'due_date'
 
@@ -44,19 +45,19 @@ export function ColumnSortMenu({ sortBy, onSortChange }: ColumnSortMenuProps) {
             </button>
             <button
               onClick={() => handleSortSelect('priority')}
-              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition ${
+              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition flex items-center gap-2 ${
                 sortBy === 'priority' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
               }`}
             >
-              🔥 Priority
+              <Flame className="w-4 h-4" /> Priority
             </button>
             <button
               onClick={() => handleSortSelect('due_date')}
-              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition ${
+              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition flex items-center gap-2 ${
                 sortBy === 'due_date' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
               }`}
             >
-              📅 Due Date
+              <Calendar className="w-4 h-4" /> Due Date
             </button>
           </div>
         </>

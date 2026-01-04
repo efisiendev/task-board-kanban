@@ -1,5 +1,7 @@
 import { useTaskActivity } from '../hooks/useTaskComments'
 import { TaskActivityWithProfile } from '../types'
+import { activityIcons } from '../lib/icons'
+import { LucideIcon } from 'lucide-react'
 
 interface ActivityLogProps {
   taskId: string
@@ -58,25 +60,9 @@ function ActivityItem({ activity }: ActivityItemProps) {
     }
   }
 
-  const getActivityIcon = (action: string) => {
-    switch (action) {
-      case 'created':
-        return '✨'
-      case 'commented':
-        return '💬'
-      case 'assigned':
-        return '👤'
-      case 'updated':
-        return '📝'
-      case 'moved':
-        return '➡️'
-      case 'completed':
-        return '✅'
-      case 'reopened':
-        return '🔄'
-      default:
-        return '📌'
-    }
+  const getActivityIcon = (action: string): LucideIcon => {
+    const iconMap: Record<string, LucideIcon> = activityIcons
+    return iconMap[action] || activityIcons.default
   }
 
   return (
@@ -92,7 +78,10 @@ function ActivityItem({ activity }: ActivityItemProps) {
           <span className="text-gray-600">{getActivityText(activity.action, activity.details)}</span>
         </div>
         <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-          <span>{getActivityIcon(activity.action)}</span>
+          {(() => {
+            const Icon = getActivityIcon(activity.action)
+            return <Icon className="w-3.5 h-3.5" />
+          })()}
           <span>{formatTimestamp(activity.created_at)}</span>
         </div>
 

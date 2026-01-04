@@ -1,3 +1,5 @@
+import { Search, Users, Folder, LucideIcon } from 'lucide-react'
+
 interface HeaderActionButtonsProps {
   showFilters: {
     isOpen: boolean
@@ -14,15 +16,15 @@ interface HeaderActionButtonsProps {
 }
 
 export function HeaderActionButtons({ showFilters, showMembers, showPages }: HeaderActionButtonsProps) {
-  const buttons = [
-    { icon: '🔍', label: 'Filter', handler: showFilters },
-    { icon: '👥', label: 'Members', handler: showMembers },
-    { icon: '📄', label: 'Files & Folders', handler: showPages },
+  const buttons: { icon: LucideIcon; label: string; handler: { isOpen: boolean; toggle: () => void } }[] = [
+    { icon: Search, label: 'Filter', handler: showFilters },
+    { icon: Users, label: 'Members', handler: showMembers },
+    { icon: Folder, label: 'Files & Folders', handler: showPages },
   ]
 
   return (
     <div className="flex gap-2 md:gap-4">
-      {buttons.map(({ icon, label, handler }) => (
+      {buttons.map(({ icon: Icon, label, handler }) => (
         <button
           key={label}
           onClick={handler.toggle}
@@ -32,8 +34,8 @@ export function HeaderActionButtons({ showFilters, showMembers, showPages }: Hea
               : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
           }`}
         >
-          <span className="md:hidden">{icon}</span>
-          <span className="hidden md:inline">{icon} {label}</span>
+          <span className="md:hidden"><Icon className="w-4 h-4" /></span>
+          <span className="hidden md:inline flex items-center gap-2"><Icon className="w-4 h-4" /> {label}</span>
         </button>
       ))}
     </div>

@@ -1,4 +1,5 @@
 import BoardStatusManager from './BoardStatusManager'
+import { X } from '../lib/icons'
 
 interface SettingsOverlayProps {
   isOpen: boolean
@@ -23,7 +24,7 @@ export function SettingsOverlay({ isOpen, boardId, isOwner, onClose }: SettingsO
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition"
           >
-            ✕
+            <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-6">

@@ -1,5 +1,7 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { Edit3 } from 'lucide-react'
+import { Eye } from '../lib/icons'
 
 interface MarkdownEditorProps {
   content: string
@@ -13,7 +15,7 @@ export function MarkdownEditor({ content, onChange, placeholder = 'Start writing
       {/* Left: Markdown Input */}
       <div className="border-r border-gray-200">
         <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-          <h4 className="text-xs font-semibold text-gray-700">📝 Markdown Editor</h4>
+          <h4 className="text-xs font-semibold text-gray-700 flex items-center gap-2"><Edit3 className="w-3.5 h-3.5" /> Markdown Editor</h4>
           <p className="text-xs text-gray-500 mt-1">
             Use markdown syntax: **bold**, *italic*, # heading, - list, [link](url)
           </p>
@@ -29,7 +31,9 @@ export function MarkdownEditor({ content, onChange, placeholder = 'Start writing
       {/* Right: Live Preview */}
       <div className="overflow-y-auto">
         <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-          <h4 className="text-xs font-semibold text-gray-700">👁️ Live Preview</h4>
+          <h4 className="text-xs font-semibold text-gray-700 flex items-center gap-2">
+            <Eye className="w-3.5 h-3.5" /> Live Preview
+          </h4>
         </div>
         <div className="prose prose-slate max-w-none p-4">
           {content ? (

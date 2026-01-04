@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useBoardMembers, useAddBoardMember, useRemoveBoardMember } from '../hooks/useBoardMembers'
 import UserSelector from './UserSelector'
 import { BoardMemberRole } from '../types'
+import { X } from '../lib/icons'
 
 interface BoardMembersProps {
   boardId: string
@@ -155,7 +156,7 @@ export default function BoardMembers({ boardId, isOwner }: BoardMembersProps) {
                     className="px-2 md:px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs md:text-sm transition disabled:opacity-50 whitespace-nowrap"
                   >
                     <span className="hidden md:inline">Remove</span>
-                    <span className="md:hidden">✕</span>
+                    <span className="md:hidden"><X className="w-3.5 h-3.5" /></span>
                   </button>
                 )}
               </div>

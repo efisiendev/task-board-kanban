@@ -3,6 +3,7 @@ import { BoardPage } from '../types'
 import { RichTextEditor } from './RichTextEditor'
 import { PageEditorModal } from './PageEditorModal'
 import { useBoardPages } from '../hooks/useBoardPages'
+import { FileText, Folder, Edit } from 'lucide-react'
 
 interface PageModalProps {
   pageId: string
@@ -56,16 +57,16 @@ export function PageModal({ pageId, boardId, onClose }: PageModalProps) {
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">📄</span>
+              <FileText className="w-6 h-6 text-gray-600" />
               <h2 className="text-lg font-semibold text-gray-900">View Page</h2>
             </div>
             <div className="flex items-center gap-2">
               {/* Edit Button - Opens Fullscreen Editor */}
               <button
                 onClick={() => setShowEditor(true)}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium transition bg-blue-600 text-white hover:bg-blue-700"
+                className="px-3 py-1.5 rounded-lg text-sm font-medium transition bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
               >
-                ✏️ Edit
+                <Edit className="w-4 h-4" /> Edit
               </button>
               <button
                 onClick={onClose}
@@ -85,8 +86,8 @@ export function PageModal({ pageId, boardId, onClose }: PageModalProps) {
               {breadcrumb.map((item, index) => (
                 <div key={item.id} className="flex items-center gap-2">
                   {index > 0 && <span>/</span>}
-                  <span className={index === breadcrumb.length - 1 ? 'text-gray-900 font-medium' : ''}>
-                    {item.type === 'folder' ? '📁' : '📄'} {item.title}
+                  <span className={`flex items-center gap-1 ${index === breadcrumb.length - 1 ? 'text-gray-900 font-medium' : ''}`}>
+                    {item.type === 'folder' ? <Folder className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />} {item.title}
                   </span>
                 </div>
               ))}

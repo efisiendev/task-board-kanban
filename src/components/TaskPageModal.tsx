@@ -3,6 +3,7 @@ import { TaskPage } from '../types'
 import { useUpdateTaskPage } from '../hooks/useTaskPages'
 import { RichTextEditor } from './RichTextEditor'
 import { useAutoSave } from '../hooks/useAutoSave'
+import { Edit3, Type } from 'lucide-react'
 
 interface TaskPageModalProps {
   page: TaskPage
@@ -102,25 +103,25 @@ export function TaskPageModal({ page, taskId, onClose }: TaskPageModalProps) {
             <div className="flex items-center gap-1 bg-gray-100 rounded p-0.5">
               <button
                 onClick={() => setEditorMode('rich')}
-                className={`px-2 py-1 rounded text-xs font-medium transition ${
+                className={`px-2 py-1 rounded text-xs font-medium transition flex items-center gap-1 ${
                   editorMode === 'rich'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <span className="hidden sm:inline">📝 Rich</span>
-                <span className="sm:hidden">📝</span>
+                <Edit3 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Rich</span>
               </button>
               <button
                 onClick={() => setEditorMode('markdown')}
-                className={`px-2 py-1 rounded text-xs font-medium transition ${
+                className={`px-2 py-1 rounded text-xs font-medium transition flex items-center gap-1 ${
                   editorMode === 'markdown'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <span className="hidden sm:inline">🔤 MD</span>
-                <span className="sm:hidden">🔤</span>
+                <Type className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">MD</span>
               </button>
             </div>
 

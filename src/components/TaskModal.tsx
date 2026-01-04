@@ -9,11 +9,13 @@ import { TaskRelations } from './TaskRelations'
 import { ConfirmDialog } from './ConfirmDialog'
 import { useTaskFormState, TaskFormData } from '../hooks/useTaskFormState'
 import { useAutoSave } from '../hooks/useAutoSave'
-import { PropertyRow, PriorityField, DateField, TimeField, AssigneeField, LabelsField, AddPropertyButton, AdditionalProperty } from './shared'
+import { PropertyRow, PriorityField, DateField, TimeField, AssigneeField, MultiAssigneeField, CreatorField, LabelsField, AddPropertyButton, AdditionalProperty } from './shared'
 import { useSubtasks } from '../hooks/useSubtasks'
 import { useTaskPages } from '../hooks/useTaskPages'
 import { useTaskRelations } from '../hooks/useTaskRelations'
+import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '../hooks/useTaskAssignees'
 import { useToggle } from '../hooks/useToggle'
+import { sectionIcons, AlertTriangle } from '../lib/icons'
 
 interface TaskModalProps {
   task: Task | null
@@ -44,6 +46,14 @@ export default function TaskModal({
   const { data: pages = [] } = useTaskPages(task?.id || '')
   const { data: relationsData } = useTaskRelations(task?.id || '')
   const { outgoing = [], incoming = [] } = relationsData || {}
+
+  // Fetch assignees for this task
+  const { data: taskAssignees = [] } = useTaskAssignees(task?.id || '')
+  const addAssigneeMutation = useAddTaskAssignee()
+  const removeAssigneeMutation = useRemoveTaskAssignee()
+
+  // Extract assignee IDs
+  const assigneeIds = taskAssignees.map(a => a.user_id)
 
   // Auto-show properties that have content (only on initial load)
   useEffect(() => {
@@ -255,21 +265,39 @@ export default function TaskModal({
                 />
               </PropertyRow>
 
-              {/* Assigned */}
-              <PropertyRow label="Assigned">
-                <AssigneeField
-                  value={assignedTo}
-                  isEditing={editingProperty === 'assigned'}
-                  onEdit={() => setEditingProperty('assigned')}
-                  onChange={(value) => {
-                    setAssignedTo(value || '')
-                    lastEditTimeRef.current = Date.now()
-                    setEditingProperty(null)
-                    if (task) immediateAutoSave(getFormData())
-                  }}
-                  onBlur={() => setEditingProperty(null)}
-                />
-              </PropertyRow>
+              {/* Assigned (Multiple Assignees) */}
+              {task && (
+                <PropertyRow label="Assigned">
+                  <MultiAssigneeField
+                    taskId={task.id}
+                    boardId={task.board_id}
+                    assigneeIds={assigneeIds}
+                    isEditing={editingProperty === 'assigned'}
+                    onEdit={() => setEditingProperty('assigned')}
+                    onAdd={(userId) => {
+                      addAssigneeMutation.mutate({
+                        taskId: task.id,
+                        userId,
+                        boardId: task.board_id,
+                      })
+                    }}
+                    onRemove={(userId) => {
+                      removeAssigneeMutation.mutate({
+                        taskId: task.id,
+                        userId,
+                      })
+                    }}
+                    onBlur={() => setEditingProperty(null)}
+                  />
+                </PropertyRow>
+              )}
+
+              {/* Created By */}
+              {task && (
+                <PropertyRow label="Created by">
+                  <CreatorField value={task.created_by} />
+                </PropertyRow>
+              )}
 
               {/* Start Date */}
               <PropertyRow label="Start Date">
@@ -372,21 +400,30 @@ export default function TaskModal({
           {/* Full Sections - only show when they have content or user added them */}
           {task && visibleProperties.includes('subtasks') && (
             <div className="border-t border-gray-200 pt-4 mt-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">☑️ Subtasks</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <sectionIcons.subtasks className="w-4 h-4" />
+                Subtasks
+              </h3>
               <SubTaskList taskId={task.id} boardId={task.board_id} />
             </div>
           )}
 
           {task && visibleProperties.includes('pages') && (
             <div className="border-t border-gray-200 pt-4 mt-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">📄 Pages</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <sectionIcons.pages className="w-4 h-4" />
+                Pages
+              </h3>
               <TaskPages taskId={task.id} />
             </div>
           )}
 
           {task && visibleProperties.includes('relations') && (
             <div className="border-t border-gray-200 pt-4 mt-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">🔗 Relations</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <sectionIcons.relations className="w-4 h-4" />
+                Relations
+              </h3>
               <TaskRelations taskId={task.id} boardId={task.board_id} />
             </div>
           )}
@@ -394,7 +431,10 @@ export default function TaskModal({
           {/* Comments Section - Right after properties */}
           {task && (
             <div className="border-t border-gray-200 pt-4 mt-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">💬 Comments</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <sectionIcons.comments className="w-4 h-4" />
+                Comments
+              </h3>
               <TaskComments taskId={task.id} />
             </div>
           )}
@@ -402,7 +442,10 @@ export default function TaskModal({
           {/* Activity Log - Always visible at bottom */}
           {task && (
             <div className="border-t border-gray-200 pt-4 mt-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">📊 Activity</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <sectionIcons.activity className="w-4 h-4" />
+                Activity
+              </h3>
               <ActivityLog taskId={task.id} />
             </div>
           )}
@@ -453,7 +496,7 @@ export default function TaskModal({
     <ConfirmDialog
       isOpen={showDeleteConfirm.isOpen}
       title="Delete Task?"
-      icon="⚠️"
+      icon={<AlertTriangle className="w-6 h-6 text-red-600" />}
       message={
         <div className="space-y-2">
           <p>This will <strong>permanently delete</strong>:</p>

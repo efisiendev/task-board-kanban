@@ -91,8 +91,16 @@ export interface Subtask {
   labels: string[] | null
   estimated_time: number | null // in minutes
   actual_time: number | null // in minutes
+  created_by: string | null
   created_at: string
   updated_at: string
+}
+
+export interface TaskAssignee {
+  task_id: string
+  user_id: string
+  assigned_at: string
+  assigned_by: string | null
 }
 
 export interface TaskComment {

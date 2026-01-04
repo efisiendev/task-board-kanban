@@ -1,11 +1,12 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { Task, UserProfile } from '../types'
-import { useProfileFromBatch } from '../hooks/useBatchUserProfiles'
 import { useSubtasks } from '../hooks/useSubtasks'
+import { useTaskAssignees } from '../hooks/useTaskAssignees'
 import { useToggle } from '../hooks/useToggle'
 import { ConfirmDialog } from './ConfirmDialog'
 import { createPortal } from 'react-dom'
+import { Edit, Link2, Trash2, CheckSquare, Calendar, Clock, AlertTriangle } from 'lucide-react'
 
 interface TaskCardProps {
   task: Task
@@ -35,8 +36,16 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 })
 
-  // Get assignee profile from batched data
-  const assigneeProfile = useProfileFromBatch(task.assigned_to, userProfiles)
+  // Get all assignees for this task
+  const { data: assignees = [] } = useTaskAssignees(task.id)
+  
+  // Get profiles for all assignees
+  const assigneeProfiles = useMemo(() => {
+    return assignees
+      .map(a => userProfiles.find(p => p.user_id === a.user_id))
+      .filter((p): p is UserProfile => p !== undefined)
+  }, [assignees, userProfiles])
+
   const { data: subtaskItems = [] } = useSubtasks(task.id)
 
   // Card colors - lighter than column background (for simplified/subtask mode)
@@ -215,14 +224,14 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
                     onClick={handleStartEdit}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
                   >
-                    <span>✏️</span>
+                    <Edit className="w-4 h-4" />
                     Edit name
                   </button>
                   <button
                     onClick={handleCopyLink}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
                   >
-                    <span>🔗</span>
+                    <Link2 className="w-4 h-4" />
                     Copy link
                   </button>
                   {onDelete && (
@@ -232,7 +241,7 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
                         onClick={handleDelete}
                         className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
                       >
-                        <span>🗑️</span>
+                        <Trash2 className="w-4 h-4" />
                         Delete
                       </button>
                     </>
@@ -253,16 +262,42 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
         </p>
       )}
 
-      {/* Assignee */}
-      {assigneeProfile && (
+      {/* Assignees */}
+      {assigneeProfiles.length > 0 && (
         <div className="flex items-center gap-2 mt-2">
-          <div className="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium">
-            {assigneeProfile.email[0].toUpperCase()}
+          {/* Avatar Group */}
+          <div className="flex -space-x-2">
+            {assigneeProfiles.slice(0, 3).map((profile, index) => (
+              <div
+                key={profile.user_id}
+                className="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium border border-white"
+                style={{ zIndex: assigneeProfiles.length - index }}
+                title={`${profile.email}${profile.employee_number ? ` - ${profile.employee_number}` : ''}`}
+              >
+                {profile.email[0].toUpperCase()}
+              </div>
+            ))}
+            {assigneeProfiles.length > 3 && (
+              <div
+                className="w-5 h-5 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-medium border border-white"
+                title={`+${assigneeProfiles.length - 3} more assignees`}
+              >
+                +{assigneeProfiles.length - 3}
+              </div>
+            )}
           </div>
-          <span className="text-xs text-gray-600 truncate">
-            {assigneeProfile.email}
-            {assigneeProfile.employee_number && ` - ${assigneeProfile.employee_number}`}
-          </span>
+          {/* Show first assignee name if there's space */}
+          {assigneeProfiles.length === 1 && (
+            <span className="text-xs text-gray-600 truncate">
+              {assigneeProfiles[0].email}
+              {assigneeProfiles[0].employee_number && ` - ${assigneeProfiles[0].employee_number}`}
+            </span>
+          )}
+          {assigneeProfiles.length > 1 && (
+            <span className="text-xs text-gray-600">
+              {assigneeProfiles.length} assignees
+            </span>
+          )}
         </div>
       )}
 
@@ -271,17 +306,17 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
         <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
           {hasSubtasks && (
             <span className={`flex items-center gap-1 ${subtasksCompleted === subtasksTotal ? 'text-green-600' : ''}`}>
-              ☑️ {subtasksCompleted}/{subtasksTotal}
+              <CheckSquare className="w-3.5 h-3.5" /> {subtasksCompleted}/{subtasksTotal}
             </span>
           )}
           {formattedDate && (
             <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-600 font-medium' : ''}`}>
-              📅 {formattedDate}
+              <Calendar className="w-3.5 h-3.5" /> {formattedDate}
             </span>
           )}
           {task.estimated_time && (
             <span className="flex items-center gap-1">
-              ⏱️ {task.estimated_time}m
+              <Clock className="w-3.5 h-3.5" /> {task.estimated_time}m
             </span>
           )}
         </div>
@@ -292,7 +327,7 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
     <ConfirmDialog
       isOpen={showDeleteConfirm.isOpen}
       title="Delete Task?"
-      icon="⚠️"
+      icon={<AlertTriangle className="w-6 h-6 text-orange-500" />}
       message={
         <div className="space-y-2">
           <p>This will <strong>permanently delete</strong>:</p>

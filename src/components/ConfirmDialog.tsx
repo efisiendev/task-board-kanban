@@ -7,7 +7,7 @@ export interface ConfirmDialogProps {
   confirmText?: string
   cancelText?: string
   confirmButtonClass?: string
-  icon?: string
+  icon?: React.ReactNode
   requireTextConfirm?: boolean
   textToConfirm?: string
   onConfirm: () => void

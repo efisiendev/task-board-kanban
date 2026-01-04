@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { TaskPriority } from '../../types'
+import { Circle } from '../../lib/icons'
 
 interface PriorityFieldProps {
   value: TaskPriority | null
@@ -12,7 +13,7 @@ interface PriorityFieldProps {
 const PRIORITY_OPTIONS: {
   value: TaskPriority | null
   label: string
-  emoji: string
+  iconColor: string
   bgClass: string
   textClass: string
   hoverClass: string
@@ -20,7 +21,7 @@ const PRIORITY_OPTIONS: {
   {
     value: null,
     label: 'None',
-    emoji: '⚪',
+    iconColor: 'fill-gray-400 text-gray-400',
     bgClass: 'bg-gray-50',
     textClass: 'text-gray-600',
     hoverClass: 'hover:bg-gray-100'
@@ -28,7 +29,7 @@ const PRIORITY_OPTIONS: {
   {
     value: 'low',
     label: 'Low',
-    emoji: '🔵',
+    iconColor: 'fill-blue-500 text-blue-500',
     bgClass: 'bg-blue-50',
     textClass: 'text-blue-700',
     hoverClass: 'hover:bg-blue-100'
@@ -36,7 +37,7 @@ const PRIORITY_OPTIONS: {
   {
     value: 'medium',
     label: 'Medium',
-    emoji: '🟡',
+    iconColor: 'fill-yellow-500 text-yellow-500',
     bgClass: 'bg-yellow-50',
     textClass: 'text-yellow-700',
     hoverClass: 'hover:bg-yellow-100'
@@ -44,7 +45,7 @@ const PRIORITY_OPTIONS: {
   {
     value: 'high',
     label: 'High',
-    emoji: '🟠',
+    iconColor: 'fill-orange-500 text-orange-500',
     bgClass: 'bg-orange-50',
     textClass: 'text-orange-700',
     hoverClass: 'hover:bg-orange-100'
@@ -52,7 +53,7 @@ const PRIORITY_OPTIONS: {
   {
     value: 'urgent',
     label: 'Urgent',
-    emoji: '🔴',
+    iconColor: 'fill-red-500 text-red-500',
     bgClass: 'bg-red-50',
     textClass: 'text-red-700',
     hoverClass: 'hover:bg-red-100'
@@ -106,7 +107,7 @@ export function PriorityField({ value, isEditing, onEdit, onChange, onBlur }: Pr
                 value === option.value ? option.bgClass : ''
               }`}
             >
-              <span className="text-base">{option.emoji}</span>
+              <Circle className={`w-3.5 h-3.5 ${option.iconColor}`} />
               <span className={`font-medium ${option.textClass}`}>{option.label}</span>
               {value === option.value && (
                 <svg className="ml-auto w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -127,7 +128,7 @@ export function PriorityField({ value, isEditing, onEdit, onChange, onBlur }: Pr
     >
       {value ? (
         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md ${selectedOption.bgClass}`}>
-          <span className="text-base">{selectedOption.emoji}</span>
+          <Circle className={`w-3 h-3 ${selectedOption.iconColor}`} />
           <span className={`text-sm font-medium ${selectedOption.textClass}`}>
             {selectedOption.label}
           </span>

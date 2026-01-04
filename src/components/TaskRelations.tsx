@@ -2,18 +2,20 @@ import { useState } from 'react'
 import { TaskRelationType } from '../types'
 import { useTaskRelations, useCreateTaskRelation, useDeleteTaskRelation } from '../hooks/useTaskRelations'
 import { useTasks } from '../hooks/useTasks'
+import { relationIcons } from '../lib/icons'
+import { LucideIcon } from 'lucide-react'
 
 interface TaskRelationsProps {
   taskId: string
   boardId: string
 }
 
-const RELATION_TYPES: { value: TaskRelationType; label: string; emoji: string }[] = [
-  { value: 'blocks', label: 'Blocks', emoji: '🚫' },
-  { value: 'blocked_by', label: 'Blocked by', emoji: '⛔' },
-  { value: 'relates_to', label: 'Relates to', emoji: '🔗' },
-  { value: 'duplicates', label: 'Duplicates', emoji: '📋' },
-  { value: 'duplicate_of', label: 'Duplicate of', emoji: '📄' },
+const RELATION_TYPES: { value: TaskRelationType; label: string; icon: LucideIcon }[] = [
+  { value: 'blocks', label: 'Blocks', icon: relationIcons.blocks },
+  { value: 'blocked_by', label: 'Blocked by', icon: relationIcons.blocked_by },
+  { value: 'relates_to', label: 'Relates to', icon: relationIcons.relates_to },
+  { value: 'duplicates', label: 'Duplicates', icon: relationIcons.duplicates },
+  { value: 'duplicate_of', label: 'Duplicate of', icon: relationIcons.duplicate_of },
 ]
 
 export function TaskRelations({ taskId, boardId }: TaskRelationsProps) {
@@ -72,7 +74,7 @@ export function TaskRelations({ taskId, boardId }: TaskRelationsProps) {
                 className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
               >
                 <div className="flex items-center gap-2 flex-1">
-                  <span className="text-sm">{relationType?.emoji}</span>
+                  {relationType?.icon && <relationType.icon className="w-4 h-4 text-gray-600" />}
                   <span className="text-xs text-gray-500">{relationType?.label}</span>
                   <span className="text-sm font-medium text-gray-900">
                     {relation.to_task?.title || 'Unknown task'}
@@ -103,7 +105,7 @@ export function TaskRelations({ taskId, boardId }: TaskRelationsProps) {
                 className="flex items-center justify-between px-3 py-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition"
               >
                 <div className="flex items-center gap-2 flex-1">
-                  <span className="text-sm">{relationType?.emoji}</span>
+                  {relationType?.icon && <relationType.icon className="w-4 h-4 text-blue-600" />}
                   <span className="text-sm font-medium text-gray-900">
                     {relation.from_task?.title || 'Unknown task'}
                   </span>
@@ -158,7 +160,7 @@ export function TaskRelations({ taskId, boardId }: TaskRelationsProps) {
             >
               {RELATION_TYPES.map((rt) => (
                 <option key={rt.value} value={rt.value}>
-                  {rt.emoji} {rt.label}
+                  {rt.label}
                 </option>
               ))}
             </select>

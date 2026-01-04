@@ -1,4 +1,5 @@
 import { BoardPage } from '../types'
+import { getFileTypeIcon } from '../lib/icons'
 
 interface FilePreviewModalProps {
   file: BoardPage
@@ -32,15 +33,10 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <span className="text-2xl flex-shrink-0">
-              {file.mime_type?.startsWith('image/') ? '🖼️' :
-               file.mime_type?.includes('pdf') ? '📄' :
-               file.mime_type?.includes('sheet') ? '📊' :
-               file.mime_type?.includes('document') ? '📝' :
-               file.mime_type?.includes('presentation') ? '📽️' :
-               file.mime_type?.startsWith('video/') ? '🎥' :
-               file.mime_type?.startsWith('audio/') ? '🎵' : '📎'}
-            </span>
+            {(() => {
+              const Icon = getFileTypeIcon(file.mime_type || '')
+              return <Icon className="w-6 h-6 text-gray-600 flex-shrink-0" />
+            })()}
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold text-gray-900 truncate">{file.title}</h2>
               {file.mime_type && (

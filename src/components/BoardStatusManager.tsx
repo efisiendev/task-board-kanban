@@ -8,6 +8,7 @@ import {
   useSensors,
   DragEndEvent,
 } from '@dnd-kit/core'
+import { Trash2, Edit } from 'lucide-react'
 import {
   arrayMove,
   SortableContext,
@@ -170,7 +171,7 @@ function SortableStatusItem({
                 className="p-1 hover:bg-gray-200 rounded transition"
                 title="Edit"
               >
-                ✏️
+                <Edit className="w-4 h-4" />
               </button>
               {!status.is_default && (
                 <button
@@ -178,7 +179,7 @@ function SortableStatusItem({
                   className="p-1 hover:bg-red-100 text-red-600 rounded transition"
                   title="Delete"
                 >
-                  🗑️
+                  <Trash2 className="w-4 h-4" />
                 </button>
               )}
             </div>

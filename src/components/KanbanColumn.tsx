@@ -108,8 +108,8 @@ export default function KanbanColumn({
         </div>
       </div>
 
-      {/* Tasks list - only use flex-1 if there are tasks */}
-      <div ref={setNodeRef} className={`space-y-2 overflow-y-auto ${tasks.length > 0 ? 'flex-1' : ''}`}>
+      {/* Tasks list */}
+      <div ref={setNodeRef} className="space-y-2">
         {sortedTasks.map((task) => (
             <TaskCard
               key={task.id}

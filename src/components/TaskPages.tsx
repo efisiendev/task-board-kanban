@@ -6,6 +6,7 @@ import {
   useDeleteTaskPage,
 } from '../hooks/useTaskPages'
 import { TaskPageModal } from './TaskPageModal'
+import { FileText, Trash2 } from 'lucide-react'
 
 interface TaskPagesProps {
   taskId: string
@@ -72,7 +73,7 @@ export function TaskPages({ taskId }: TaskPagesProps) {
                 className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
                 onClick={() => setSelectedPage(page)}
               >
-                <span className="text-base flex-shrink-0">📄</span>
+                <FileText className="w-4 h-4 flex-shrink-0 text-gray-600" />
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-medium text-gray-900 truncate">
                     {page.title}
@@ -109,7 +110,7 @@ export function TaskPages({ taskId }: TaskPagesProps) {
                         onClick={() => handleDeletePage(page)}
                         className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
                       >
-                        <span>🗑️</span>
+                        <Trash2 className="w-4 h-4" />
                         Delete
                       </button>
                     </div>

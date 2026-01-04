@@ -1,5 +1,6 @@
 import { TaskPriority, BoardStatus } from '../types'
 import { useUsers } from '../hooks/useUsers'
+import { Circle, Calendar, Tag } from '../lib/icons'
 
 export interface TaskFilters {
   status: string[] // status_ids
@@ -82,22 +83,22 @@ export function FilterSidebar({ filters, statuses, onChange, onClear }: FilterSi
         <h4 className="text-sm font-medium text-gray-700 mb-2">Priority</h4>
         <div className="space-y-1.5">
           <FilterCheckbox
-            label="🔴 Urgent"
+            label={<><Circle className="w-3 h-3 inline fill-red-500 text-red-500" /> Urgent</>}
             checked={filters.priority.includes('urgent')}
             onChange={() => togglePriority('urgent')}
           />
           <FilterCheckbox
-            label="🟠 High"
+            label={<><Circle className="w-3 h-3 inline fill-orange-500 text-orange-500" /> High</>}
             checked={filters.priority.includes('high')}
             onChange={() => togglePriority('high')}
           />
           <FilterCheckbox
-            label="🟡 Medium"
+            label={<><Circle className="w-3 h-3 inline fill-yellow-500 text-yellow-500" /> Medium</>}
             checked={filters.priority.includes('medium')}
             onChange={() => togglePriority('medium')}
           />
           <FilterCheckbox
-            label="🔵 Low"
+            label={<><Circle className="w-3 h-3 inline fill-blue-500 text-blue-500" /> Low</>}
             checked={filters.priority.includes('low')}
             onChange={() => togglePriority('low')}
           />
@@ -129,12 +130,12 @@ export function FilterSidebar({ filters, statuses, onChange, onClear }: FilterSi
         <h4 className="text-sm font-medium text-gray-700 mb-2">Quick Filters</h4>
         <div className="space-y-1.5">
           <FilterCheckbox
-            label="📅 Overdue"
+            label={<><Calendar className="w-3 h-3 inline" /> Overdue</>}
             checked={filters.isOverdue === true}
             onChange={() => onChange({ ...filters, isOverdue: filters.isOverdue === true ? null : true })}
           />
           <FilterCheckbox
-            label="🏷️ Has Labels"
+            label={<><Tag className="w-3 h-3 inline" /> Has Labels</>}
             checked={filters.hasLabels === true}
             onChange={() => onChange({ ...filters, hasLabels: filters.hasLabels === true ? null : true })}
           />
@@ -145,7 +146,7 @@ export function FilterSidebar({ filters, statuses, onChange, onClear }: FilterSi
 }
 
 interface FilterCheckboxProps {
-  label: string
+  label: React.ReactNode
   checked: boolean
   onChange: () => void
 }
