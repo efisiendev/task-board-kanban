@@ -52,7 +52,7 @@ export function CalendarMonth({
 
     // Debug: Log if more than 3 events on a day
     if (filtered.length > 3) {
-      console.log(`📅 ${dateStr} has ${filtered.length} events:`, filtered.map(e => ({ id: e.id, title: e.title })))
+      console.log(`${dateStr} has ${filtered.length} events:`, filtered.map(e => ({ id: e.id, title: e.title })))
     }
 
     return filtered

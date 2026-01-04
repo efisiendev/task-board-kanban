@@ -62,12 +62,8 @@ export const PRIORITY_COLORS_TABLE = {
   urgent: 'bg-red-100 text-red-800',
 } as const
 
-export const PRIORITY_EMOJI = {
-  low: '🔵',
-  medium: '🟡',
-  high: '🟠',
-  urgent: '🔴',
-} as const
+// Priority icons are now in src/lib/icons.tsx
+// Use priorityIcons from there with appropriate color classes
 
 export const STATUS_COLOR_OPTIONS = [
   { value: 'gray', label: 'Gray', class: 'bg-gray-500' },

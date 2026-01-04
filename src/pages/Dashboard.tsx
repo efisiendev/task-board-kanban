@@ -9,6 +9,7 @@ import { useCalendarEventsByRange } from '../hooks/useCalendarEvents'
 import { CalendarMonth } from '../components/CalendarMonth'
 import { EventDetailSidebar } from '../components/EventDetailSidebar'
 import { Edit } from 'lucide-react'
+import { AlertTriangle } from '../lib/icons'
 import { DEFAULTS } from '../constants/theme'
 import { useToggle } from '../hooks/useToggle'
 import { useCalendarSelection } from '../hooks/useCalendarSelection'
@@ -329,7 +330,7 @@ export default function Dashboard() {
       <ConfirmDialog
         isOpen={!!deletingBoard}
         title="Delete Project?"
-        icon="⚠️"
+        icon={<AlertTriangle className="w-6 h-6 text-red-600" />}
         message={
           <div className="space-y-2">
             <p>This will <strong>permanently delete</strong>:</p>

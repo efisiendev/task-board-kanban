@@ -32,6 +32,14 @@ import {
   Kanban,
   Table2,
   List,
+  Circle,
+  X,
+  Flame,
+  Eye,
+  Settings,
+  Globe,
+  Tag,
+  Plus,
   LucideIcon,
 } from 'lucide-react'
 
@@ -99,6 +107,22 @@ export const actionIcons = {
   calendar: Calendar,
   time: Clock,
   markdown: Type,
+  close: X,
+  flame: Flame,
+  eye: Eye,
+  settings: Settings,
+  globe: Globe,
+  tag: Tag,
+  plus: Plus,
+}
+
+// Priority icons
+export const priorityIcons = {
+  urgent: Circle, // Red circle
+  high: Circle,   // Orange circle
+  medium: Circle, // Yellow circle
+  low: Circle,    // Blue circle
+  none: Circle,   // White/gray circle
 }
 
 // Helper function to get file type icon
@@ -148,4 +172,12 @@ export {
   Kanban,
   Table2,
   List,
+  Circle,
+  X,
+  Flame,
+  Eye,
+  Settings,
+  Globe,
+  Tag,
+  Plus,
 }

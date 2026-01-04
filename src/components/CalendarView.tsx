@@ -2,6 +2,7 @@ import { Calendar, dateFnsLocalizer, Event } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale'
 import { Task } from '../types'
+import { Circle } from '../lib/icons'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
 interface CalendarEvent extends Event {
@@ -79,12 +80,12 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
               <div className="flex items-center gap-1 text-xs">
                 <span className="truncate">{event.title}</span>
                 {task.priority && !isMobile && (
-                  <span>
-                    {task.priority === 'urgent' && '🔴'}
-                    {task.priority === 'high' && '🟠'}
-                    {task.priority === 'medium' && '🔵'}
-                    {task.priority === 'low' && '⚪'}
-                  </span>
+                  <>
+                    {task.priority === 'urgent' && <Circle className="w-2.5 h-2.5 fill-red-500 text-red-500" />}
+                    {task.priority === 'high' && <Circle className="w-2.5 h-2.5 fill-orange-500 text-orange-500" />}
+                    {task.priority === 'medium' && <Circle className="w-2.5 h-2.5 fill-yellow-500 text-yellow-500" />}
+                    {task.priority === 'low' && <Circle className="w-2.5 h-2.5 fill-blue-500 text-blue-500" />}
+                  </>
                 )}
               </div>
             )

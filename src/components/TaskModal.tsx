@@ -15,7 +15,7 @@ import { useTaskPages } from '../hooks/useTaskPages'
 import { useTaskRelations } from '../hooks/useTaskRelations'
 import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '../hooks/useTaskAssignees'
 import { useToggle } from '../hooks/useToggle'
-import { sectionIcons } from '../lib/icons'
+import { sectionIcons, AlertTriangle } from '../lib/icons'
 
 interface TaskModalProps {
   task: Task | null
@@ -496,7 +496,7 @@ export default function TaskModal({
     <ConfirmDialog
       isOpen={showDeleteConfirm.isOpen}
       title="Delete Task?"
-      icon="⚠️"
+      icon={<AlertTriangle className="w-6 h-6 text-red-600" />}
       message={
         <div className="space-y-2">
           <p>This will <strong>permanently delete</strong>:</p>

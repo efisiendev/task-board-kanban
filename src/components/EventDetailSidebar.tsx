@@ -9,6 +9,7 @@ import { useBoards } from '../hooks/useBoards'
 import { useAuth } from '../hooks/useAuth'
 import { DEFAULTS } from '../constants/theme'
 import { Folder } from 'lucide-react'
+import { Globe } from '../lib/icons'
 import { CloseIcon } from './ui/Icons'
 import { ColorPicker } from './ui/ColorPicker'
 import { Button } from './ui/Button'
@@ -96,12 +97,12 @@ export function EventDetailSidebar({
   const handleSave = async () => {
     if (!title.trim()) return
 
-    console.log('📝 Saving event...', { title, startDate, endDate, boardId, coordinationType })
+    console.log('Saving event...', { title, startDate, endDate, boardId, coordinationType })
 
     try {
       if (event) {
         // Editing existing event
-        console.log('✏️ Updating existing event:', event.id)
+        console.log('Updating existing event:', event.id)
         await updateEvent.mutateAsync({
           id: event.id,
           title,
@@ -112,11 +113,11 @@ export function EventDetailSidebar({
           boardId: boardId || null,
           color,
         })
-        console.log('✅ Event updated successfully')
+        console.log('Event updated successfully')
         onClose()
       } else {
         // Creating new event (works in both isCreating mode and viewing mode)
-        console.log('➕ Creating new event...')
+        console.log('Creating new event...')
         const result = await createEvent.mutateAsync({
           title,
           description,
@@ -126,7 +127,7 @@ export function EventDetailSidebar({
           boardId: boardId || undefined, // null = public event, value = board-specific
           color,
         })
-        console.log('✅ Event created successfully:', result)
+        console.log('Event created successfully:', result)
         // Reset form after create (don't close sidebar)
         setTitle('')
         setDescription('')
@@ -136,7 +137,7 @@ export function EventDetailSidebar({
         // Keep the dates as-is so user can create another event on same date
       }
     } catch (error) {
-      console.error('❌ Error saving event:', error)
+      console.error('Error saving event:', error)
     }
   }
 
@@ -163,7 +164,7 @@ export function EventDetailSidebar({
         
         // Check if the selected date falls within the event's date range
         const matches = e.start_date <= dateStr && dateStr <= e.end_date
-        console.log('🔍 Filter debug:', {
+        console.log('Filter debug:', {
           eventTitle: e.title,
           eventStartDate: e.start_date,
           eventEndDate: e.end_date,
@@ -176,7 +177,7 @@ export function EventDetailSidebar({
 
   // Format date for logging
   const logDateStr = date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : null
-  console.log('📅 Date events for', logDateStr, ':', dateEvents.length, 'events')
+  console.log('Date events for', logDateStr, ':', dateEvents.length, 'events')
 
   return (
     <>
@@ -249,10 +250,10 @@ export function EventDetailSidebar({
                 disabled={!!(event && !isOwner)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
-                <option value="">🌐 Public (visible to all users)</option>
+                <option value="">Public (visible to all users)</option>
                 {boards.map((board) => (
                   <option key={board.id} value={board.id}>
-                    📁 {board.name} (members only)
+                    {board.name} (members only)
                   </option>
                 ))}
               </select>
@@ -380,8 +381,8 @@ export function EventDetailSidebar({
                           </span>
                         )}
                         {!e.board_id && (
-                          <span className="text-xs text-gray-500">
-                            🌐 Public
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <Globe className="w-3 h-3" /> Public
                           </span>
                         )}
                         {e.coordination_type && (
@@ -436,10 +437,10 @@ export function EventDetailSidebar({
                   onChange={(e) => setBoardId(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 >
-                  <option value="">🌐 Public (visible to all users)</option>
+                  <option value="">Public (visible to all users)</option>
                   {boards.map((board) => (
                     <option key={board.id} value={board.id}>
-                      📁 {board.name} (members only)
+                      {board.name} (members only)
                     </option>
                   ))}
                 </select>
