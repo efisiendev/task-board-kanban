@@ -1,4 +1,4 @@
-import { CalendarEvent } from '../types'
+import { CalendarEvent } from '../../../types'
 import { CalendarMonth } from './CalendarMonth'
 
 interface CalendarYearViewProps {

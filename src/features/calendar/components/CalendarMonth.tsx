@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { CalendarEvent } from '../types'
+import { CalendarEvent } from '../../../types'
 
 interface CalendarMonthProps {
   year: number

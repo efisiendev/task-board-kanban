@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { CalendarEvent } from '../types'
+import { CalendarEvent } from '../../../types'
 
 export function useCalendarSelection() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)

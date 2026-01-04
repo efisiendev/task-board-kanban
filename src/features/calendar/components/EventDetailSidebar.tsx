@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react'
-import { CalendarEvent, CalendarEventCoordinationType } from '../types'
+import { CalendarEvent, CalendarEventCoordinationType } from '../../../types'
 import {
   useCreateCalendarEvent,
   useUpdateCalendarEvent,
   useDeleteCalendarEvent,
 } from '../hooks/useCalendarEvents'
-import { useBoards } from '../hooks/useBoards'
-import { useAuth } from '../hooks/useAuth'
-import { DEFAULTS } from '../constants/theme'
+import { useBoards } from '../../../hooks/useBoards'
+import { useAuth } from '../../../hooks/useAuth'
+import { DEFAULTS } from '../../../constants/theme'
 import { Folder } from 'lucide-react'
-import { Globe } from '../lib/icons'
-import { CloseIcon } from './ui/Icons'
-import { ColorPicker } from './ui/ColorPicker'
-import { Button } from './ui/Button'
+import { Globe } from '../../../lib/icons'
+import { CloseIcon } from '../../../components/ui/Icons'
+import { ColorPicker } from '../../../components/ui/ColorPicker'
+import { Button } from '../../../components/ui/Button'
 
 interface EventDetailSidebarProps {
   date: Date | null

@@ -1,8 +1,8 @@
 import { Calendar, dateFnsLocalizer, Event } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale'
-import { Task } from '../types'
-import { Circle } from '../lib/icons'
+import { Task } from '../../../types'
+import { Circle } from '../../../lib/icons'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
 interface CalendarEvent extends Event {
