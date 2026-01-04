@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabase'
 import UserSelector from './UserSelector'
 import { useTaskFormState } from '../hooks/useTaskFormState'
 import { useAutoSave } from '../hooks/useAutoSave'
-import { PropertyRow, PriorityField, DateField, TimeField } from './shared'
+import { PropertyRow, PriorityField, DateField, TimeField, MultiAssigneeField, CreatorField } from './shared'
+import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '../hooks/useTaskAssignees'
 
 import { TaskFormData } from '../hooks/useTaskFormState'
 
@@ -14,10 +15,19 @@ interface SubtaskModalProps {
   onSave: (data: TaskFormData) => void
   subtask?: Subtask | null
   mode: 'create' | 'edit'
+  boardId: string
 }
 
-export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: SubtaskModalProps) {
+export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode, boardId }: SubtaskModalProps) {
   const [editingProperty, setEditingProperty] = useState<string | null>(null)
+
+  // Fetch assignees for this subtask (only in edit mode)
+  const { data: taskAssignees = [] } = useTaskAssignees(subtask?.id || '')
+  const addAssigneeMutation = useAddTaskAssignee()
+  const removeAssigneeMutation = useRemoveTaskAssignee()
+
+  // Extract assignee IDs
+  const assigneeIds = taskAssignees.map(a => a.user_id)
 
   // Auto-save function for edit mode
   const handleAutoSave = async (data: TaskFormData) => {
@@ -171,34 +181,39 @@ export function SubtaskModal({ isOpen, onClose, onSave, subtask, mode }: Subtask
                 />
               </PropertyRow>
 
-              {/* Assigned */}
-              <PropertyRow label="Assigned">
-                {editingProperty === 'assigned' ? (
-                  <div onBlur={() => setEditingProperty(null)}>
-                    <UserSelector
-                      value={assignedTo || null}
-                      onChange={(userId) => {
-                        setAssignedTo(userId)
-                        lastEditTimeRef.current = Date.now()
-                        setEditingProperty(null)
-                        if (subtask && mode === 'edit') immediateAutoSave(getFormData())
-                      }}
-                      placeholder="Select user..."
-                    />
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => setEditingProperty('assigned')}
-                    className="text-sm cursor-pointer px-2 py-1"
-                  >
-                    {assignedTo ? (
-                      <span className="text-gray-900">{assignedTo}</span>
-                    ) : (
-                      <span className="text-gray-400">Empty</span>
-                    )}
-                  </div>
-                )}
-              </PropertyRow>
+              {/* Assigned (Multiple Assignees) */}
+              {subtask && mode === 'edit' && (
+                <PropertyRow label="Assigned">
+                  <MultiAssigneeField
+                    taskId={subtask.id}
+                    boardId={boardId}
+                    assigneeIds={assigneeIds}
+                    isEditing={editingProperty === 'assigned'}
+                    onEdit={() => setEditingProperty('assigned')}
+                    onAdd={(userId) => {
+                      addAssigneeMutation.mutate({
+                        taskId: subtask.id,
+                        userId,
+                        boardId: boardId,
+                      })
+                    }}
+                    onRemove={(userId) => {
+                      removeAssigneeMutation.mutate({
+                        taskId: subtask.id,
+                        userId,
+                      })
+                    }}
+                    onBlur={() => setEditingProperty(null)}
+                  />
+                </PropertyRow>
+              )}
+
+              {/* Created By */}
+              {subtask && mode === 'edit' && (
+                <PropertyRow label="Created by">
+                  <CreatorField value={subtask.created_by} />
+                </PropertyRow>
+              )}
 
               {/* Start Date */}
               <PropertyRow label="Start Date">

@@ -112,6 +112,7 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
           onSave={handleModalSave}
           subtask={null}
           mode={modalMode}
+          boardId={boardId}
         />
       </div>
     )
@@ -277,6 +278,7 @@ export function SubTaskList({ taskId, boardId }: SubTaskListProps) {
         onSave={handleModalSave}
         subtask={selectedSubtask}
         mode={modalMode}
+        boardId={boardId}
       />
     </div>
   )
