@@ -5,7 +5,6 @@ import {
   useCreateTaskPage,
   useDeleteTaskPage,
 } from '../hooks/useTaskPages'
-import { TaskPageModal } from './TaskPageModal'
 import { FileText, Trash2 } from 'lucide-react'
 
 interface TaskPagesProps {
@@ -13,7 +12,6 @@ interface TaskPagesProps {
 }
 
 export function TaskPages({ taskId }: TaskPagesProps) {
-  const [selectedPage, setSelectedPage] = useState<TaskPage | null>(null)
   const [newPageTitle, setNewPageTitle] = useState('')
   const [showMenuId, setShowMenuId] = useState<string | null>(null)
 
@@ -36,7 +34,8 @@ export function TaskPages({ taskId }: TaskPagesProps) {
       {
         onSuccess: (data) => {
           setNewPageTitle('')
-          setSelectedPage(data) // Open modal immediately
+          // Open in new tab immediately
+          window.open(`/task/${taskId}/page/${data.id}`, '_blank', 'noopener,noreferrer')
         },
       }
     )
@@ -69,9 +68,11 @@ export function TaskPages({ taskId }: TaskPagesProps) {
         {pages.map((page) => (
           <div key={page.id} className="border border-gray-200 rounded-lg overflow-hidden hover:border-gray-300 transition group">
             <div className="px-4 py-3 flex items-center justify-between">
-              <div
-                className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
-                onClick={() => setSelectedPage(page)}
+              <a
+                href={`/task/${taskId}/page/${page.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:bg-gray-50"
               >
                 <FileText className="w-4 h-4 flex-shrink-0 text-gray-600" />
                 <div className="flex-1 min-w-0">
@@ -84,7 +85,7 @@ export function TaskPages({ taskId }: TaskPagesProps) {
                     </p>
                   )}
                 </div>
-              </div>
+              </a>
 
               {/* Three-dot Menu */}
               <div className="page-menu relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -148,15 +149,6 @@ export function TaskPages({ taskId }: TaskPagesProps) {
           </div>
         </div>
       </div>
-
-      {/* Page Modal - Fullscreen Editor */}
-      {selectedPage && (
-        <TaskPageModal
-          page={selectedPage}
-          taskId={taskId}
-          onClose={() => setSelectedPage(null)}
-        />
-      )}
     </>
   )
 }

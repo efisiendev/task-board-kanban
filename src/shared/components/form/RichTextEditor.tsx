@@ -92,9 +92,9 @@ export function RichTextEditor({ content, onChange, placeholder = 'Start writing
   }
 
   return (
-    <div className="rich-text-editor">
+    <div className="rich-text-editor w-full">
       {editable && (
-        <div className="border-b border-gray-200 bg-gray-50 p-2 flex flex-wrap gap-1 sticky top-0 z-10">
+        <div className="border-b border-gray-200 bg-gray-50 p-2 flex flex-wrap gap-1 sticky top-0 z-30 shadow-sm">
           {/* Text Formatting */}
           <button
             onClick={() => editor.chain().focus().toggleBold().run()}
@@ -290,7 +290,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Start writing
 
       <EditorContent
         editor={editor}
-        className={`prose prose-slate max-w-none p-4 focus:outline-none ${editable ? 'min-h-[300px]' : ''}`}
+        className={`prose prose-slate max-w-none p-4 focus:outline-none overflow-visible ${editable ? 'min-h-[300px]' : ''}`}
       />
     </div>
   )

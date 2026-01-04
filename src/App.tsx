@@ -5,6 +5,9 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Board from './pages/Board'
 import Timeline from './pages/Timeline'
+import TaskPage from './pages/TaskPage'
+import PageDetailPage from './pages/PageDetailPage'
+import TaskPageDetailPage from './pages/TaskPageDetailPage'
 import './App.css'
 
 const queryClient = new QueryClient({
@@ -29,6 +32,9 @@ function App() {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/board/:boardId" element={<ProtectedRoute><Board /></ProtectedRoute>} />
           <Route path="/timeline" element={<ProtectedRoute><Timeline /></ProtectedRoute>} />
+          <Route path="/task/:taskId" element={<ProtectedRoute><TaskPage /></ProtectedRoute>} />
+          <Route path="/task/:taskId/page/:pageId" element={<ProtectedRoute><TaskPageDetailPage /></ProtectedRoute>} />
+          <Route path="/board/:boardId/page/:pageId" element={<ProtectedRoute><PageDetailPage /></ProtectedRoute>} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>

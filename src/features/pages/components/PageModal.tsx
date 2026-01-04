@@ -3,7 +3,7 @@ import { BoardPage } from '../../../types'
 import { RichTextEditor } from '../../../shared/components/form/RichTextEditor'
 import { PageEditorModal } from './PageEditorModal'
 import { useBoardPages } from '../hooks/useBoardPages'
-import { FileText, Folder, Edit } from 'lucide-react'
+import { FileText, Folder, Edit, ExternalLink } from 'lucide-react'
 
 interface PageModalProps {
   pageId: string
@@ -61,6 +61,17 @@ export function PageModal({ pageId, boardId, onClose }: PageModalProps) {
               <h2 className="text-lg font-semibold text-gray-900">View Page</h2>
             </div>
             <div className="flex items-center gap-2">
+              {/* Pop-out Button */}
+              <a
+                href={`/board/${boardId}/page/${pageId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-blue-600 transition flex items-center gap-1 text-sm px-2 py-1 rounded hover:bg-gray-100"
+                title="Open in new tab"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span className="hidden md:inline">Open</span>
+              </a>
               {/* Edit Button - Opens Fullscreen Editor */}
               <button
                 onClick={() => setShowEditor(true)}

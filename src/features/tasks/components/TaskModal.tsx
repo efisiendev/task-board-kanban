@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Task } from '../../../types'
 import { supabase } from '../../../lib/supabase'
 import { TaskComments } from './TaskComments'
@@ -16,6 +17,7 @@ import { useTaskRelations } from '../hooks/useTaskRelations'
 import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '../hooks/useTaskAssignees'
 import { useToggle } from '../../../shared/hooks/useToggle'
 import { sectionIcons, AlertTriangle } from '../../../lib/icons'
+import { ExternalLink } from 'lucide-react'
 
 interface TaskModalProps {
   task: Task | null
@@ -36,6 +38,7 @@ export default function TaskModal({
   onUpdate,
   onDelete,
 }: TaskModalProps) {
+  const navigate = useNavigate()
   const [editingProperty, setEditingProperty] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [visibleProperties, setVisibleProperties] = useState<AdditionalProperty[]>([])
@@ -203,15 +206,31 @@ export default function TaskModal({
           <h2 className="text-2xl font-bold text-gray-900">
             {task ? 'Edit Task' : 'Create Task'}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Pop-out button - only show for existing tasks */}
+            {task && (
+              <a
+                href={`/task/${task.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-blue-600 transition flex items-center gap-1 text-sm px-2 py-1 rounded hover:bg-gray-100"
+                title="Open in new tab"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span className="hidden md:inline">Open</span>
+              </a>
+            )}
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Scrollable Content */}

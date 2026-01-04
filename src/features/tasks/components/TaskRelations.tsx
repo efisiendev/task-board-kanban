@@ -43,6 +43,10 @@ export function TaskRelations({ taskId, boardId }: TaskRelationsProps) {
       setIsAdding(false)
     } catch (error) {
       console.error('Failed to create relation:', error)
+      alert('Failed to create relation. Please try again.')
+      // Reset state on error
+      setIsAdding(false)
+      setSelectedTaskId('')
     }
   }
 
@@ -71,14 +75,19 @@ export function TaskRelations({ taskId, boardId }: TaskRelationsProps) {
             return (
               <div
                 key={relation.id}
-                className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition group"
               >
                 <div className="flex items-center gap-2 flex-1">
                   {relationType?.icon && <relationType.icon className="w-4 h-4 text-gray-600" />}
                   <span className="text-xs text-gray-500">{relationType?.label}</span>
-                  <span className="text-sm font-medium text-gray-900">
+                  <a
+                    href={`/task/${relation.to_task_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-blue-600 hover:underline cursor-pointer"
+                  >
                     {relation.to_task?.title || 'Unknown task'}
-                  </span>
+                  </a>
                   {relation.to_task?.status_id && (
                     <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">
                       Status ID: {relation.to_task.status_id.substring(0, 8)}...
@@ -102,13 +111,18 @@ export function TaskRelations({ taskId, boardId }: TaskRelationsProps) {
             return (
               <div
                 key={relation.id}
-                className="flex items-center justify-between px-3 py-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition"
+                className="flex items-center justify-between px-3 py-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition group"
               >
                 <div className="flex items-center gap-2 flex-1">
                   {relationType?.icon && <relationType.icon className="w-4 h-4 text-blue-600" />}
-                  <span className="text-sm font-medium text-gray-900">
+                  <a
+                    href={`/task/${relation.from_task_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-blue-600 hover:underline cursor-pointer"
+                  >
                     {relation.from_task?.title || 'Unknown task'}
-                  </span>
+                  </a>
                   <span className="text-xs text-gray-500">{relationType?.label} this task</span>
                   {relation.from_task?.status_id && (
                     <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">

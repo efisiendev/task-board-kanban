@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useTasks, useUpdateTask } from '../features/tasks/hooks/useTasks'
@@ -42,6 +42,7 @@ const DEFAULT_FILTERS: TaskFilters = {
 
 export default function Board() {
   const { boardId } = useParams<{ boardId: string }>()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuth()
   const { data: boards = [] } = useBoards()
   const { data: tasks = [], isLoading } = useTasks(boardId!)
@@ -64,6 +65,18 @@ export default function Board() {
   const showPages = useToggle()
   const [currentView, setCurrentView] = useState<ViewType>('kanban')
   const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS)
+
+  // Handle ?task= query param to open task modal
+  useEffect(() => {
+    const taskId = searchParams.get('task')
+    if (taskId && tasks.length > 0) {
+      const task = tasks.find(t => t.id === taskId)
+      if (task) {
+        setEditingTask(task)
+        setIsModalOpen(true)
+      }
+    }
+  }, [searchParams, tasks])
 
   // Fetch all task assignees for all tasks in this board
   const taskIds = useMemo(() => tasks.map(t => t.id), [tasks])
@@ -417,6 +430,11 @@ export default function Board() {
             setIsModalOpen(false)
             setEditingTask(null)
             setInitialStatusId(null)
+            // Clear ?task query param if present
+            if (searchParams.has('task')) {
+              searchParams.delete('task')
+              setSearchParams(searchParams, { replace: true })
+            }
           }}
           onCreate={handleCreateTask}
           onUpdate={handleUpdateTask}
