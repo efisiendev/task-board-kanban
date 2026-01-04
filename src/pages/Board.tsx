@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '../lib/supabase'
 import { useTasks, useUpdateTask } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
 import { useBoards } from '../hooks/useBoards'
@@ -63,8 +65,58 @@ export default function Board() {
   const [currentView, setCurrentView] = useState<ViewType>('kanban')
   const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS)
 
+  // Fetch all task assignees for all tasks in this board
+  const taskIds = useMemo(() => tasks.map(t => t.id), [tasks])
+  const queryClient = useQueryClient()
+  
+  const { data: allTaskAssignees = [] } = useQuery({
+    queryKey: ['all-task-assignees', boardId, taskIds.join(',')],
+    queryFn: async () => {
+      if (taskIds.length === 0) return []
+      
+      const { data, error } = await supabase
+        .from('task_assignees')
+        .select('user_id')
+        .in('task_id', taskIds)
+      
+      if (error) throw error
+      return data || []
+    },
+    enabled: taskIds.length > 0,
+  })
+
+  // Real-time subscription for task_assignees changes
+  useEffect(() => {
+    if (!boardId || taskIds.length === 0) return
+
+    const channel = supabase
+      .channel(`board-task-assignees:${boardId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'task_assignees',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['all-task-assignees', boardId] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      channel.unsubscribe()
+    }
+  }, [boardId, taskIds.length, queryClient])
+
   // Batch fetch all user profiles for tasks (prevents N+1 queries)
-  const assigneeIds = useMemo(() => tasks.map(t => t.assigned_to), [tasks])
+  // Combine assignees from both old assigned_to field AND new task_assignees table
+  const assigneeIds = useMemo(() => {
+    const oldAssigneeIds = tasks.map(t => t.assigned_to).filter(Boolean) as string[]
+    const newAssigneeIds = allTaskAssignees.map(a => a.user_id)
+    return [...new Set([...oldAssigneeIds, ...newAssigneeIds])] // Remove duplicates
+  }, [tasks, allTaskAssignees])
+  
   const { data: userProfiles = [] } = useBatchUserProfiles(assigneeIds)
 
   // Check if current user is board owner

@@ -1,8 +1,8 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { Task, UserProfile } from '../types'
-import { useProfileFromBatch } from '../hooks/useBatchUserProfiles'
 import { useSubtasks } from '../hooks/useSubtasks'
+import { useTaskAssignees } from '../hooks/useTaskAssignees'
 import { useToggle } from '../hooks/useToggle'
 import { ConfirmDialog } from './ConfirmDialog'
 import { createPortal } from 'react-dom'
@@ -36,8 +36,16 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 })
 
-  // Get assignee profile from batched data
-  const assigneeProfile = useProfileFromBatch(task.assigned_to, userProfiles)
+  // Get all assignees for this task
+  const { data: assignees = [] } = useTaskAssignees(task.id)
+  
+  // Get profiles for all assignees
+  const assigneeProfiles = useMemo(() => {
+    return assignees
+      .map(a => userProfiles.find(p => p.user_id === a.user_id))
+      .filter((p): p is UserProfile => p !== undefined)
+  }, [assignees, userProfiles])
+
   const { data: subtaskItems = [] } = useSubtasks(task.id)
 
   // Card colors - lighter than column background (for simplified/subtask mode)
@@ -254,16 +262,42 @@ export default function TaskCard({ task, userProfiles, statusColor, onClick, onD
         </p>
       )}
 
-      {/* Assignee */}
-      {assigneeProfile && (
+      {/* Assignees */}
+      {assigneeProfiles.length > 0 && (
         <div className="flex items-center gap-2 mt-2">
-          <div className="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium">
-            {assigneeProfile.email[0].toUpperCase()}
+          {/* Avatar Group */}
+          <div className="flex -space-x-2">
+            {assigneeProfiles.slice(0, 3).map((profile, index) => (
+              <div
+                key={profile.user_id}
+                className="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium border border-white"
+                style={{ zIndex: assigneeProfiles.length - index }}
+                title={`${profile.email}${profile.employee_number ? ` - ${profile.employee_number}` : ''}`}
+              >
+                {profile.email[0].toUpperCase()}
+              </div>
+            ))}
+            {assigneeProfiles.length > 3 && (
+              <div
+                className="w-5 h-5 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-medium border border-white"
+                title={`+${assigneeProfiles.length - 3} more assignees`}
+              >
+                +{assigneeProfiles.length - 3}
+              </div>
+            )}
           </div>
-          <span className="text-xs text-gray-600 truncate">
-            {assigneeProfile.email}
-            {assigneeProfile.employee_number && ` - ${assigneeProfile.employee_number}`}
-          </span>
+          {/* Show first assignee name if there's space */}
+          {assigneeProfiles.length === 1 && (
+            <span className="text-xs text-gray-600 truncate">
+              {assigneeProfiles[0].email}
+              {assigneeProfiles[0].employee_number && ` - ${assigneeProfiles[0].employee_number}`}
+            </span>
+          )}
+          {assigneeProfiles.length > 1 && (
+            <span className="text-xs text-gray-600">
+              {assigneeProfiles.length} assignees
+            </span>
+          )}
         </div>
       )}
 
