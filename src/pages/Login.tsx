@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth } from '../shared/hooks/useAuth'
 
 export default function Login() {
   const { signUp, signIn } = useAuth()
