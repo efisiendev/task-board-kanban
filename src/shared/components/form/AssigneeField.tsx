@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useUserProfile } from '../../hooks/useUsers'
-import UserSelector from '../UserSelector'
+import UserSelector from './UserSelector'
 
 interface AssigneeFieldProps {
   value: string | null

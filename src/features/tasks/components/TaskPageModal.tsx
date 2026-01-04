@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { TaskPage } from '../../../types'
 import { useUpdateTaskPage } from '../hooks/useTaskPages'
-import { RichTextEditor } from '../../../components/RichTextEditor'
-import { useAutoSave } from '../../../hooks/useAutoSave'
+import { RichTextEditor } from '../../../shared/components/form/RichTextEditor'
+import { useAutoSave } from '../../../shared/hooks/useAutoSave'
 import { Edit3, Type } from 'lucide-react'
 
 interface TaskPageModalProps {

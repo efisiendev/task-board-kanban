@@ -1,5 +1,5 @@
-import BoardStatusManager from '../features/boards/components/BoardStatusManager'
-import { X } from '../lib/icons'
+import BoardStatusManager from '../../../features/boards/components/BoardStatusManager'
+import { X } from '../../../lib/icons'
 
 interface SettingsOverlayProps {
   isOpen: boolean

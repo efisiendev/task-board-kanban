@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Subtask } from '../../../types'
 import { supabase } from '../../../lib/supabase'
-import UserSelector from '../../../components/UserSelector'
+import UserSelector from '../../../shared/components/form/UserSelector'
 import { useTaskFormState } from '../hooks/useTaskFormState'
-import { useAutoSave } from '../../../hooks/useAutoSave'
-import { PropertyRow, PriorityField, DateField, TimeField, MultiAssigneeField, CreatorField } from '../../../components/shared'
+import { useAutoSave } from '../../../shared/hooks/useAutoSave'
+import { PropertyRow, PriorityField, DateField, TimeField, MultiAssigneeField, CreatorField } from '../../../shared/components/form'
 import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '../hooks/useTaskAssignees'
 
 import { TaskFormData } from '../hooks/useTaskFormState'

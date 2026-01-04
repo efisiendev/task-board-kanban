@@ -1,4 +1,4 @@
-import { COLOR_PALETTE } from '../../constants/theme'
+import { COLOR_PALETTE } from '../../../constants/theme'
 
 interface ColorPickerProps {
   value: string

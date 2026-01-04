@@ -17,7 +17,7 @@ import {
 } from '../hooks/useSubtasks'
 import { useBoardStatuses } from '../../boards/hooks/useBoardStatuses'
 import { SubtaskModal } from './SubtaskModal'
-import { useBatchUserProfiles } from '../../../hooks/useBatchUserProfiles'
+import { useBatchUserProfiles } from '../../../shared/hooks/useBatchUserProfiles'
 import KanbanColumn from '../../boards/components/KanbanColumn'
 
 interface SubTaskListProps {

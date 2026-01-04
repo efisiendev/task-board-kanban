@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '../lib/supabase'
-import { UserProfile } from '../types'
+import { supabase } from '../../lib/supabase'
+import { UserProfile } from '../../types'
 
 /**
  * Batch fetch user profiles for multiple user IDs

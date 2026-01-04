@@ -3,7 +3,7 @@ import { useCalendarEvents } from '../features/calendar/hooks/useCalendarEvents'
 import { CalendarYearView } from '../features/calendar/components/CalendarYearView'
 import { EventDetailSidebar } from '../features/calendar/components/EventDetailSidebar'
 import { CalendarEvent } from '../types'
-import { MainLayout } from '../components/MainLayout'
+import { MainLayout } from '../shared/components/layout/MainLayout'
 
 export default function Timeline() {
   const currentYear = new Date().getFullYear()

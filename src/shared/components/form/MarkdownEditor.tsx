@@ -1,7 +1,7 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Edit3 } from 'lucide-react'
-import { Eye } from '../lib/icons'
+import { Eye } from '../../../lib/icons'
 
 interface MarkdownEditorProps {
   content: string

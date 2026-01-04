@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { TaskPage } from '../../../types'
 import { useUpdateTaskPage, useDeleteTaskPage } from '../../tasks/hooks/useTaskPages'
-import { RichTextEditor } from '../../../components/RichTextEditor'
+import { RichTextEditor } from '../../../shared/components/form/RichTextEditor'
 import { FileText, Edit3, Type, Trash2 } from 'lucide-react'
 
 interface PageEditorProps {

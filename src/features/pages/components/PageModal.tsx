@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { BoardPage } from '../../../types'
-import { RichTextEditor } from '../../../components/RichTextEditor'
+import { RichTextEditor } from '../../../shared/components/form/RichTextEditor'
 import { PageEditorModal } from './PageEditorModal'
 import { useBoardPages } from '../hooks/useBoardPages'
 import { FileText, Folder, Edit } from 'lucide-react'

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Task, BoardStatus, UserProfile } from '../../../types'
-import { useProfileFromBatch } from '../../../hooks/useBatchUserProfiles'
+import { useProfileFromBatch } from '../../../shared/hooks/useBatchUserProfiles'
 import { Circle, Calendar, Clock } from '../../../lib/icons'
 
 interface ListViewProps {

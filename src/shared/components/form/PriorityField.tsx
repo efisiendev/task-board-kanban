@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { TaskPriority } from '../../types'
-import { Circle } from '../../lib/icons'
+import { TaskPriority } from '../../../types'
+import { Circle } from '../../../lib/icons'
 
 interface PriorityFieldProps {
   value: TaskPriority | null

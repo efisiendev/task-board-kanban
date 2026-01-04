@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useBoardMembers, useAddBoardMember, useRemoveBoardMember } from '../hooks/useBoardMembers'
-import UserSelector from '../../../components/UserSelector'
+import UserSelector from '../../../shared/components/form/UserSelector'
 import { BoardMemberRole } from '../../../types'
 import { X } from '../../../lib/icons'
 

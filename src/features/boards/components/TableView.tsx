@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Task, UserProfile } from '../../../types'
-import { useProfileFromBatch } from '../../../hooks/useBatchUserProfiles'
+import { useProfileFromBatch } from '../../../shared/hooks/useBatchUserProfiles'
 
 interface TableViewProps {
   tasks: Task[]

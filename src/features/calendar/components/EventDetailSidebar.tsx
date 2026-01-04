@@ -6,13 +6,13 @@ import {
   useDeleteCalendarEvent,
 } from '../hooks/useCalendarEvents'
 import { useBoards } from '../../boards/hooks/useBoards'
-import { useAuth } from '../../../hooks/useAuth'
+import { useAuth } from '../../../shared/hooks/useAuth'
 import { DEFAULTS } from '../../../constants/theme'
 import { Folder } from 'lucide-react'
 import { Globe } from '../../../lib/icons'
-import { CloseIcon } from '../../../components/ui/Icons'
-import { ColorPicker } from '../../../components/ui/ColorPicker'
-import { Button } from '../../../components/ui/Button'
+import { CloseIcon } from '../../../shared/components/ui/Icons'
+import { ColorPicker } from '../../../shared/components/ui/ColorPicker'
+import { Button } from '../../../shared/components/ui/Button'
 
 interface EventDetailSidebarProps {
   date: Date | null

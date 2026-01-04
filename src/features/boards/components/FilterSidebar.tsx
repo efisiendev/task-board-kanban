@@ -1,5 +1,5 @@
 import { TaskPriority, BoardStatus } from '../../../types'
-import { useUsers } from '../../../hooks/useUsers'
+import { useUsers } from '../../../shared/hooks/useUsers'
 import { Circle, Calendar, Tag } from '../../../lib/icons'
 
 export interface TaskFilters {

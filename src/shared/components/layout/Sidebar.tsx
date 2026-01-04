@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import { useBoards } from '../features/boards/hooks/useBoards'
-import { Board } from '../types'
+import { useAuth } from '../../hooks/useAuth'
+import { useBoards } from '../../../features/boards/hooks/useBoards'
+import { Board } from '../../../types'
 import { Kanban, LogOut } from 'lucide-react'
 
 interface SidebarProps {

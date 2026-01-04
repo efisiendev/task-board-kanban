@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useBatchUserProfiles } from '../../hooks/useBatchUserProfiles'
-import UserSelector from '../UserSelector'
+import UserSelector from './UserSelector'
 
 interface MultiAssigneeFieldProps {
   taskId: string

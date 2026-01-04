@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { BoardPage } from '../../../types'
 import { useUpdateBoardPage } from '../hooks/useBoardPages'
-import { RichTextEditor } from '../../../components/RichTextEditor'
-import { MarkdownEditor } from '../../../components/MarkdownEditor'
-import { useAutoSave } from '../../../hooks/useAutoSave'
+import { RichTextEditor } from '../../../shared/components/form/RichTextEditor'
+import { MarkdownEditor } from '../../../shared/components/form/MarkdownEditor'
+import { useAutoSave } from '../../../shared/hooks/useAutoSave'
 import { FileText, Edit3, Type } from 'lucide-react'
 
 interface PageEditorModalProps {

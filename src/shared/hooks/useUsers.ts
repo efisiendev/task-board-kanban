@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '../lib/supabase'
-import { UserProfile } from '../types'
+import { supabase } from '../../lib/supabase'
+import { UserProfile } from '../../types'
 
 export interface UserWithEmail {
   user_id: string
