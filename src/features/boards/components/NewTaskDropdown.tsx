@@ -1,5 +1,5 @@
 import { Edit3 } from 'lucide-react'
-import { Settings } from '../lib/icons'
+import { Settings } from '../../../lib/icons'
 
 interface NewTaskDropdownProps {
   isOpen: boolean
